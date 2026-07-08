@@ -1,0 +1,33 @@
+.pattern-fidget {
+	display: grid;
+	place-items: center;
+	gap: 26px;
+	width: min(84vw, 390px);
+}
+
+.pattern-fidget.is-icon {
+	width: 100%;
+	aspect-ratio: 1;
+	pointer-events: none;
+}
+
+.pattern-fidget.is-icon .pattern-fidget-grid {
+	width: 66%;
+	gap: 5px;
+}
+
+.pattern-fidget.is-icon .pattern-fidget-cell {
+	border-color: rgba(255, 255, 255, 0.16);
+	border-radius: 24%;
+	background: rgba(255, 255, 255, 0.1);
+}
+
+.pattern-fidget.is-icon .pattern-fidget-cell.is-lit {
+	background: color-mix(in srgb, #c8b6ff 64%, rgba(255, 255, 255, 0.16));
+	border-color: rgba(255, 255, 255, 0.42);
+	box-shadow: 0 0 14px rgba(200, 182, 255, 0.24);
+}
+
+.pattern-fidget.is-icon .pattern-fidget-pulse {
+	display: none;
+}

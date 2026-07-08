@@ -1,0 +1,39 @@
+.spinner-rotor {
+	position: relative;
+	z-index: 2;
+	display: block;
+	width: 86.2069%;
+	height: 86.2069%;
+	transform: translateZ(0) rotate(0deg);
+	will-change: transform;
+}
+
+.spinner-rotor[data-spinner-preview="true"] {
+	width: 72%;
+	height: 72%;
+}
+
+.spinner-rotor[data-spinner-preview="true"] .spinner-rotor-art {
+	transform: translate(var(--spinner-origin-x), var(--spinner-origin-y));
+	filter: drop-shadow(0 8px 12px var(--spinner-shadow));
+}
+
+.spinner-rotor-art {
+	display: block;
+	width: 100%;
+	height: 100%;
+	transform: translate(var(--spinner-origin-x), var(--spinner-origin-y));
+	opacity: var(--spinner-lobe-clarity);
+	background:
+		radial-gradient(circle at 38% 32%, rgba(255, 255, 255, 0.42), transparent 18%),
+		linear-gradient(145deg, var(--spinner-light), var(--spinner-accent) 52%, var(--spinner-deep));
+	filter: drop-shadow(0 16px 18px var(--spinner-shadow));
+	mask: var(--spinner-asset) center / contain no-repeat;
+	-webkit-mask: var(--spinner-asset) center / contain no-repeat;
+}
+
+@keyframes spinner-preview-rotation {
+	to {
+		transform: translateZ(0) rotate(360deg);
+	}
+}

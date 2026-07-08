@@ -1,0 +1,85 @@
+{
+	"name": "io.foxbiz.nudge",
+	"displayName": "Nudge",
+	"version": "0.0.1",
+	"versionCode": 1,
+	"description": "A hybrid app built with the Nudge template",
+	"type": "module",
+	"licenses": [
+		{
+			"type": "MIT"
+		}
+	],
+	"scripts": {
+		"dev": "node dev/start",
+		"dev:release": "node dev/start -- --release",
+		"typecheck": "tsc",
+		"test": "jest",
+		"build": "tsc && node dev/build",
+		"lang": "node dev/lang",
+		"format": "biome check --write",
+		"rename": "node dev/rename"
+	},
+	"author": "",
+	"license": "MIT",
+	"devDependencies": {
+		"@babel/core": "^7.29.7",
+		"@babel/plugin-transform-runtime": "^7.29.7",
+		"@babel/preset-env": "^7.29.7",
+		"@babel/preset-react": "^7.29.7",
+		"@babel/preset-typescript": "^7.29.7",
+		"@babel/runtime": "^7.29.7",
+		"@biomejs/biome": "2.4.12",
+		"@pmmmwh/react-refresh-webpack-plugin": "^0.5.17",
+		"@tailwindcss/postcss": "^4.3.0",
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/react": "^16.3.2",
+		"@testing-library/user-event": "^14.6.1",
+		"@types/core-js": "^2.5.8",
+		"@types/jest": "^30.0.0",
+		"@types/node": "^26.1.0",
+		"@types/react": "^19.2.16",
+		"@types/react-dom": "^19.2.3",
+		"autoprefixer": "^10.5.0",
+		"babel-loader": "^10.1.1",
+		"baseline-browser-mapping": "^2.10.33",
+		"cli-select": "^1.1.2",
+		"css-loader": "^7.1.4",
+		"identity-obj-proxy": "^3.0.0",
+		"jest": "^30.4.2",
+		"jest-environment-jsdom": "^30.4.1",
+		"mini-css-extract-plugin": "^2.10.2",
+		"postcss": "^8.5.15",
+		"postcss-loader": "^8.2.1",
+		"raw-loader": "^4.0.2",
+		"react-compiler-webpack": "^1.0.1",
+		"react-refresh": "^0.14.2",
+		"sass": "^1.100.0",
+		"sass-loader": "^16.0.8",
+		"style-loader": "^4.0.0",
+		"terser-webpack-plugin": "^5.6.1",
+		"ts-jest": "^29.4.11",
+		"ts-loader": "^9.6.0",
+		"typescript": "^6.0.3",
+		"webpack": "^5.107.2",
+		"webpack-cli": "^6.0.1",
+		"webpack-dev-server": "^5.2.4",
+		"xml2js": "^0.6.2"
+	},
+	"dependencies": {
+		"buffer": "^6.0.3",
+		"core-js": "^3.49.0",
+		"lucide-react": "^1.23.0",
+		"react": "^19.2.7",
+		"react-dom": "^19.2.7",
+		"resize-observer-polyfill": "^1.5.1",
+		"tailwindcss": "^4.3.0"
+	},
+	"browserslist": [
+		"cover 100%,not android < 5"
+	],
+	"private": true,
+	"engines": {
+		"node": ">=22.13"
+	}
+}

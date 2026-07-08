@@ -1,0 +1,104 @@
+.fidget-shell {
+	position: fixed;
+	inset: 0;
+	display: grid;
+	grid-template-rows: auto 1fr;
+	min-height: var(--vh);
+	padding:
+		calc(var(--sat, 0px) + 14px)
+		calc(var(--sar, 0px) + 18px)
+		calc(var(--sab, 0px) + 22px)
+		calc(var(--sal, 0px) + 18px);
+	background:
+		radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--fidget-accent) 28%, transparent), transparent 36%),
+		linear-gradient(160deg, rgba(255, 255, 255, 0.08), transparent 48%);
+}
+
+.fidget-shell-gallery {
+	padding:
+		calc(var(--sat, 0px) + 14px)
+		0
+		calc(var(--sab, 0px) + 8px)
+		0;
+}
+
+.fidget-shell-gallery .fidget-shell-header {
+	padding:
+		0
+		calc(var(--sar, 0px) + 18px)
+		0
+		calc(var(--sal, 0px) + 18px);
+}
+
+.fidget-shell-header {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+	align-items: center;
+	gap: 12px;
+}
+
+.fidget-shell-header-start {
+	display: flex;
+	align-items: center;
+	justify-self: start;
+	gap: 8px;
+	min-width: 0;
+}
+
+.fidget-shell-header-end {
+	display: flex;
+	align-items: center;
+	justify-self: end;
+	justify-content: flex-end;
+	gap: 4px;
+	min-width: 44px;
+	min-height: 44px;
+}
+
+.fidget-shell-back,
+.fidget-shell-action {
+	display: grid;
+	place-items: center;
+	flex: 0 0 auto;
+	width: 44px;
+	height: 44px;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	cursor: pointer;
+	line-height: 1;
+	transition:
+		transform 140ms ease,
+		color 140ms ease;
+}
+
+.fidget-shell-back:active,
+.fidget-shell-action:active {
+	transform: scale(0.92);
+	color: color-mix(in srgb, var(--fidget-accent) 82%, white);
+}
+
+.fidget-shell-action:disabled {
+	opacity: 0.34;
+	cursor: default;
+}
+
+.fidget-shell-action:disabled:active {
+	transform: none;
+	color: inherit;
+}
+
+.fidget-shell-title {
+	margin: 0;
+	justify-self: center;
+	text-align: center;
+	font-size: 18px;
+	font-weight: 760;
+	letter-spacing: 0;
+}
+
+.fidget-shell-body {
+	display: grid;
+	place-items: center;
+	min-height: 0;
+}

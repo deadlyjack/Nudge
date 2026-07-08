@@ -1,0 +1,74 @@
+.spinner-fidget-body {
+	--spinner-lobe-clarity: 1;
+
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: min(78vw, 330px);
+	aspect-ratio: 1;
+	border: 0;
+	border-radius: 50%;
+	padding: 0;
+	background: transparent;
+	cursor: grab;
+	touch-action: none;
+	overflow: visible;
+	transition: transform 130ms ease;
+}
+
+.spinner-fidget-body::before {
+	content: "";
+	position: absolute;
+	inset: 11%;
+	z-index: 0;
+	border-radius: 50%;
+	background: radial-gradient(circle, rgba(0, 0, 0, 0.28), transparent 66%);
+	transform: translateY(20%);
+	pointer-events: none;
+}
+
+.spinner-fidget-body:active {
+	cursor: grabbing;
+	transform: scale(0.98);
+}
+
+.spinner-fidget-body:disabled {
+	cursor: inherit;
+}
+
+.spinner-fidget-body.is-icon {
+	width: 100%;
+	pointer-events: none;
+}
+
+.spinner-fidget-body.is-icon::before {
+	display: none;
+}
+
+.spinner-fidget-body.is-icon:active {
+	transform: none;
+}
+
+.spinner-fidget-body.is-icon .spinner-fidget-stage {
+	width: 100%;
+}
+
+.spinner-fidget-stage {
+	position: relative;
+	z-index: 1;
+	display: grid;
+	place-items: center;
+	width: 116%;
+	aspect-ratio: 1;
+	pointer-events: none;
+}
+
+.spinner-fidget-motion-canvas {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	transform: translateZ(0);
+}

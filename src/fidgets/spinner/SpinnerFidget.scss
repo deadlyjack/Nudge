@@ -1,0 +1,44 @@
+.spinner-fidget {
+	align-self: stretch;
+	display: grid;
+	place-items: center;
+	grid-template-rows: 1fr auto;
+	gap: 0;
+	width: min(86vw, 390px);
+	height: 100%;
+}
+
+.spinner-fidget-stats {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 30px;
+	width: 100%;
+	margin-bottom: 8px;
+	pointer-events: none;
+}
+
+.spinner-fidget-stat {
+	display: grid;
+	place-items: center;
+	min-width: 48px;
+	padding: 0;
+	text-align: center;
+}
+
+.spinner-fidget-stat-best {
+	opacity: 0.72;
+}
+
+.spinner-fidget-stat-value {
+	color: rgba(255, 248, 226, 0.9);
+	font-size: 20px;
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0;
+	line-height: 1.1;
+}
+
+.spinner-fidget-stat-best .spinner-fidget-stat-value {
+	color: color-mix(in srgb, var(--fidget-accent) 82%, white);
+}

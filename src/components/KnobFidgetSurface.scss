@@ -1,0 +1,16 @@
+.knob-fidget {
+	display: grid;
+	place-items: center;
+	gap: 28px;
+	width: min(82vw, 380px);
+}
+
+.knob-fidget.is-icon {
+	width: 100%;
+	aspect-ratio: 1;
+	pointer-events: none;
+}
+
+.knob-fidget.is-icon .knob-fidget-dial {
+	width: 78%;
+}

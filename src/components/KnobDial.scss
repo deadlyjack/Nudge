@@ -1,0 +1,448 @@
+.knob-fidget-dial {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: min(70vw, 300px);
+	aspect-ratio: 1;
+	border: 0;
+	border-radius: 50%;
+	padding: 0;
+	background: transparent;
+	cursor: grab;
+	touch-action: none;
+	transform: scale(1);
+	transition: transform 140ms ease;
+}
+
+.knob-fidget-dial:active,
+.knob-fidget-dial.is-active {
+	cursor: grabbing;
+	transform: scale(0.985);
+	transition: none;
+}
+
+.knob-fidget-hardware,
+.knob-fidget-hardware-motion,
+.knob-fidget-hardware-body,
+.knob-fidget-skirt,
+.knob-fidget-sidewall,
+.knob-fidget-side-grip,
+.knob-fidget-cap,
+.knob-fidget-cap-shadow,
+.knob-fidget-brush,
+.knob-fidget-reflection,
+.knob-fidget-bevel-ring,
+.knob-fidget-center-boss,
+.knob-fidget-marker-rotor,
+.knob-fidget-indicator {
+	position: absolute;
+	pointer-events: none;
+}
+
+.knob-fidget-hardware {
+	inset: 0;
+	border-radius: 50%;
+	perspective: 760px;
+}
+
+.knob-fidget-hardware-motion {
+	inset: 2%;
+	border-radius: 50%;
+	transform-origin: 50% 58%;
+	transform-style: preserve-3d;
+}
+
+.knob-fidget-hardware-motion.is-impact-a {
+	animation: knob-detent-impact-a 90ms cubic-bezier(0.22, 0.88, 0.28, 1);
+}
+
+.knob-fidget-hardware-motion.is-impact-b {
+	animation: knob-detent-impact-b 90ms cubic-bezier(0.22, 0.88, 0.28, 1);
+}
+
+.knob-fidget-hardware-body {
+	inset: 0;
+	border-radius: 50%;
+	filter: drop-shadow(0 18px 22px var(--knob-shadow));
+	transform-style: preserve-3d;
+}
+
+.knob-fidget-skirt {
+	inset: 4% 2% 0;
+	border-radius: 50%;
+	background:
+		radial-gradient(circle at 50% 24%, var(--knob-light), transparent 17%),
+		conic-gradient(
+			from 216deg,
+			var(--knob-dark),
+			var(--knob-mid) 12%,
+			var(--knob-light) 22%,
+			var(--knob-base) 38%,
+			var(--knob-dark) 56%,
+			var(--knob-highlight) 66%,
+			var(--knob-mid) 78%,
+			var(--knob-dark)
+		);
+	box-shadow:
+		inset 0 -5px 12px rgba(0, 0, 0, 0.42),
+		inset 0 4px 9px rgba(255, 255, 255, 0.22);
+	transform: translateY(var(--knob-skirt-depth));
+}
+
+.knob-fidget-sidewall {
+	inset: 5% 4% 3%;
+	border-radius: 50%;
+	overflow: hidden;
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 24%, rgba(0, 0, 0, 0.38) 82%),
+		conic-gradient(
+			from 168deg,
+			var(--knob-dark),
+			var(--knob-base) 16%,
+			var(--knob-light) 26%,
+			var(--knob-mid) 43%,
+			var(--knob-dark) 57%,
+			var(--knob-highlight) 70%,
+			var(--knob-mid) 84%,
+			var(--knob-dark)
+		);
+	box-shadow:
+		inset 0 0 0 3px rgba(255, 255, 255, 0.16),
+		inset 0 -18px 24px rgba(0, 0, 0, 0.42);
+}
+
+.knob-fidget-side-grip {
+	inset: -1%;
+	border-radius: 50%;
+	background:
+		repeating-conic-gradient(
+			from 1deg,
+			transparent 0deg,
+			transparent 4.2deg,
+			var(--knob-texture) 4.8deg,
+			transparent 6.5deg
+		),
+		repeating-radial-gradient(circle, transparent 0 7%, rgba(0, 0, 0, 0.16) 7.5% 8.3%);
+	mix-blend-mode: overlay;
+	opacity: var(--knob-grip-opacity);
+}
+
+.knob-fidget-cap {
+	inset: var(--knob-cap-inset);
+	border-radius: 50%;
+	overflow: hidden;
+	background:
+		radial-gradient(circle at 38% 28%, var(--knob-highlight), transparent 0 18%),
+		radial-gradient(circle at 68% 72%, rgba(0, 0, 0, 0.36), transparent 0 31%),
+		conic-gradient(
+			from 228deg,
+			var(--knob-dark),
+			var(--knob-mid) 9%,
+			var(--knob-light) 18%,
+			var(--knob-base) 29%,
+			var(--knob-mid) 41%,
+			var(--knob-dark) 54%,
+			var(--knob-highlight) 63%,
+			var(--knob-light) 69%,
+			var(--knob-mid) 80%,
+			var(--knob-dark)
+		);
+	box-shadow:
+		inset 0 0 0 var(--knob-bevel-depth) rgba(255, 255, 255, 0.16),
+		inset 0 10px 12px rgba(255, 255, 255, 0.2),
+		inset 0 -14px 22px rgba(0, 0, 0, 0.38),
+		0 8px 14px rgba(0, 0, 0, 0.22);
+}
+
+.knob-fidget-cap-shadow {
+	inset: 0;
+	border-radius: 50%;
+	background:
+		linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 31%),
+		linear-gradient(315deg, rgba(0, 0, 0, 0.32), transparent 44%);
+	opacity: 0.82;
+}
+
+.knob-fidget-brush {
+	inset: 2%;
+	border-radius: 50%;
+	background:
+		repeating-conic-gradient(
+			from 0deg,
+			transparent 0deg,
+			transparent 4deg,
+			var(--knob-texture) 4.45deg,
+			transparent 5deg
+		),
+		repeating-radial-gradient(circle, transparent 0 3.5%, rgba(255, 255, 255, 0.08) 3.7% 4.2%);
+	mix-blend-mode: soft-light;
+	opacity: var(--knob-brush-opacity);
+}
+
+.knob-fidget-reflection {
+	inset: -8%;
+	border-radius: 50%;
+	background:
+		linear-gradient(124deg, transparent 0 22%, rgba(255, 255, 255, 0.78) 30%, transparent 39%),
+		conic-gradient(
+			from 214deg,
+			transparent 0 8%,
+			rgba(255, 255, 255, 0.68) 10% 15%,
+			transparent 19% 53%,
+			rgba(255, 255, 255, 0.46) 58% 63%,
+			transparent 69% 100%
+		);
+	mix-blend-mode: screen;
+	opacity: var(--knob-reflection-strength);
+}
+
+.knob-fidget-bevel-ring {
+	inset: 7%;
+	border: var(--knob-bevel-depth) solid rgba(255, 255, 255, 0.18);
+	border-radius: 50%;
+	box-shadow:
+		inset 0 2px 12px rgba(255, 255, 255, 0.38),
+		inset 0 -3px 13px rgba(0, 0, 0, 0.42),
+		0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.knob-fidget-center-boss {
+	inset: 34%;
+	border-radius: 50%;
+	background:
+		radial-gradient(circle at 39% 31%, var(--knob-highlight), transparent 0 20%),
+		conic-gradient(
+			from 206deg,
+			var(--knob-mid),
+			var(--knob-light) 20%,
+			var(--knob-base) 43%,
+			var(--knob-dark) 62%,
+			var(--knob-highlight) 74%,
+			var(--knob-mid)
+		);
+	box-shadow:
+		inset 0 2px 6px rgba(255, 255, 255, 0.28),
+		inset 0 -5px 8px rgba(0, 0, 0, 0.36),
+		0 2px 5px rgba(0, 0, 0, 0.28);
+	opacity: var(--knob-boss-opacity);
+}
+
+.knob-fidget-marker-rotor {
+	inset: var(--knob-marker-inset);
+	border-radius: 50%;
+	overflow: hidden;
+	transform-box: border-box;
+	transform-origin: 50% 50%;
+	will-change: transform;
+}
+
+.knob-fidget-indicator {
+	top: var(--knob-indicator-top);
+	left: 50%;
+	width: var(--knob-indicator-width);
+	height: var(--knob-indicator-length);
+	border-radius: var(--knob-indicator-radius);
+	overflow: hidden;
+	background:
+		linear-gradient(90deg, rgba(0, 0, 0, 0.95), rgba(255, 255, 255, 0.1) 13%, var(--knob-indicator) 42%, rgba(0, 0, 0, 0.96)),
+		var(--knob-dark);
+	box-shadow:
+		inset 0 3px 5px rgba(0, 0, 0, 0.88),
+		inset 0 -1px 1px rgba(255, 255, 255, 0.12),
+		0 -1px 0 rgba(255, 255, 255, 0.18),
+		0 1px 1px rgba(0, 0, 0, 0.62);
+	transform: translateX(-50%);
+	opacity: 0.9;
+}
+
+.knob-fidget-indicator::before,
+.knob-fidget-indicator::after {
+	position: absolute;
+	border-radius: inherit;
+	content: "";
+	pointer-events: none;
+}
+
+.knob-fidget-indicator::before {
+	inset: 0 24%;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+	opacity: 0.34;
+}
+
+.knob-fidget-indicator::after {
+	inset: 1px;
+	box-shadow:
+		inset 0 2px 3px rgba(0, 0, 0, 0.9),
+		inset 0 -1px 1px rgba(255, 255, 255, 0.08);
+}
+
+.knob-fidget-dial[data-knob-indicator="arrow"] .knob-fidget-indicator {
+	clip-path: polygon(50% 0, 100% 30%, 68% 30%, 68% 100%, 32% 100%, 32% 30%, 0 30%);
+}
+
+.knob-fidget-dial[data-knob-indicator="groove"] .knob-fidget-indicator {
+	background:
+		linear-gradient(90deg, rgba(0, 0, 0, 0.98), rgba(255, 255, 255, 0.08) 15%, rgba(4, 6, 8, 0.96) 58%, rgba(0, 0, 0, 0.92)),
+		var(--knob-dark);
+}
+
+.knob-fidget-dial[data-knob-indicator="line"] .knob-fidget-indicator,
+.knob-fidget-dial[data-knob-indicator="slot"] .knob-fidget-indicator {
+	box-shadow:
+		inset 0 2px 4px rgba(0, 0, 0, 0.92),
+		inset 0 -1px 1px rgba(255, 255, 255, 0.1),
+		0 -1px 0 rgba(255, 255, 255, 0.22),
+		0 1px 1px rgba(0, 0, 0, 0.65);
+}
+
+.knob-fidget-dial[data-knob-material="matte-plastic"] .knob-fidget-center-boss {
+	inset: 39%;
+	opacity: 0.52;
+}
+
+.knob-fidget-dial[data-knob-material="soft-rubber"] .knob-fidget-cap,
+.knob-fidget-dial[data-knob-material="soft-rubber"] .knob-fidget-sidewall {
+	filter: saturate(0.85);
+}
+
+.knob-fidget-dial[data-knob-material="soft-rubber"] .knob-fidget-reflection {
+	display: none;
+}
+
+.knob-fidget-dial[data-knob-material="knurled-steel"] .knob-fidget-side-grip {
+	background:
+		repeating-conic-gradient(from 1deg, transparent 0deg 3deg, var(--knob-texture) 3.4deg 4.8deg, transparent 5.2deg 8deg),
+		repeating-linear-gradient(45deg, transparent 0 8px, rgba(255, 255, 255, 0.14) 8px 10px, transparent 10px 18px),
+		repeating-linear-gradient(-45deg, transparent 0 8px, rgba(0, 0, 0, 0.18) 8px 10px, transparent 10px 18px);
+}
+
+.knob-fidget-dial[data-knob-material="polished-chrome"] .knob-fidget-reflection {
+	opacity: var(--knob-polished-reflection-opacity);
+}
+
+.knob-fidget-dial[data-knob-body="domed"] .knob-fidget-cap {
+	background:
+		radial-gradient(circle at 34% 24%, rgba(255, 202, 124, 0.32), transparent 0 18%),
+		radial-gradient(circle at 50% 48%, var(--knob-light), var(--knob-base) 34%, var(--knob-mid) 58%, var(--knob-dark) 100%);
+	box-shadow:
+		inset 0 12px 22px rgba(255, 216, 148, 0.16),
+		inset 0 -20px 28px rgba(0, 0, 0, 0.48),
+		0 10px 18px rgba(0, 0, 0, 0.32);
+}
+
+.knob-fidget-dial[data-knob-body="domed"] .knob-fidget-center-boss,
+.knob-fidget-dial[data-knob-body="fluted"] .knob-fidget-center-boss {
+	display: none;
+}
+
+.knob-fidget-dial[data-knob-body="instrument-skirt"] .knob-fidget-skirt {
+	inset: 0;
+	background:
+		repeating-conic-gradient(from 0deg, var(--knob-dark) 0deg 0.7deg, transparent 0.8deg 7.5deg),
+		radial-gradient(circle, transparent 0 60%, rgba(255, 255, 255, 0.26) 61% 63%, transparent 64%),
+		conic-gradient(from 210deg, var(--knob-light), var(--knob-base) 24%, var(--knob-mid) 48%, var(--knob-light) 72%, var(--knob-dark));
+}
+
+.knob-fidget-dial[data-knob-body="scalloped"] .knob-fidget-sidewall {
+	inset: 4% 3% 2%;
+}
+
+.knob-fidget-dial[data-knob-body="anodized"] .knob-fidget-cap {
+	box-shadow:
+		inset 0 0 0 5px rgba(210, 228, 236, 0.42),
+		inset 0 0 0 9px rgba(0, 0, 0, 0.44),
+		inset 0 10px 12px rgba(255, 255, 255, 0.12),
+		inset 0 -14px 22px rgba(0, 0, 0, 0.6),
+		0 8px 14px rgba(0, 0, 0, 0.32);
+}
+
+.knob-fidget-dial[data-knob-body="carbon-composite"] .knob-fidget-cap {
+	background:
+		linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0 8%, transparent 8% 16%),
+		linear-gradient(-45deg, rgba(0, 0, 0, 0.38) 0 8%, transparent 8% 16%),
+		conic-gradient(from 230deg, var(--knob-dark), var(--knob-mid) 18%, var(--knob-light) 26%, var(--knob-dark) 44%, var(--knob-highlight) 60%, var(--knob-mid) 76%, var(--knob-dark));
+	background-size: 16px 16px, 16px 16px, auto;
+}
+
+.knob-fidget-dial[data-knob-body="precision"] .knob-fidget-skirt,
+.knob-fidget-dial[data-knob-body="polished"] .knob-fidget-skirt {
+	inset: 3% 1% -1%;
+}
+
+.knob-fidget-dial[data-knob-grip="fluted"] .knob-fidget-side-grip,
+.knob-fidget-dial[data-knob-grip="ribbed"] .knob-fidget-side-grip {
+	background:
+		repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.2) 0deg 2.2deg, rgba(0, 0, 0, 0.22) 2.6deg 5.8deg, transparent 6deg 10deg),
+		radial-gradient(circle, transparent 0 62%, rgba(0, 0, 0, 0.22) 63% 68%, transparent 69%);
+	opacity: 0.74;
+}
+
+.knob-fidget-dial[data-knob-grip="scalloped"] .knob-fidget-side-grip {
+	background:
+		repeating-conic-gradient(from 0deg, rgba(0, 0, 0, 0.36) 0deg 8deg, rgba(255, 255, 255, 0.18) 8.5deg 13deg, transparent 13.5deg 24deg),
+		radial-gradient(circle, transparent 0 58%, rgba(0, 0, 0, 0.28) 59% 70%, transparent 71%);
+	opacity: 0.82;
+}
+
+.knob-fidget-dial[data-knob-material="bakelite"] .knob-fidget-reflection {
+	background:
+		radial-gradient(circle at 30% 23%, rgba(255, 214, 146, 0.54), transparent 0 18%),
+		linear-gradient(140deg, transparent 0 20%, rgba(255, 198, 120, 0.32) 30%, transparent 42%);
+	mix-blend-mode: screen;
+}
+
+.knob-fidget-dial[data-knob-material="synth-plastic"] .knob-fidget-reflection {
+	opacity: 0.24;
+}
+
+.knob-fidget-dial[data-knob-material="ceramic-ivory"] .knob-fidget-brush {
+	background:
+		repeating-conic-gradient(from 0deg, rgba(60, 51, 37, 0.26) 0deg 0.6deg, transparent 0.8deg 6deg),
+		repeating-radial-gradient(circle, transparent 0 4%, rgba(255, 255, 255, 0.12) 4.2% 4.8%);
+	mix-blend-mode: multiply;
+	opacity: 0.28;
+}
+
+.knob-fidget-dial[data-knob-material="olive-gunmetal"] .knob-fidget-reflection {
+	opacity: 0.28;
+}
+
+.knob-fidget-dial[data-knob-material="anodized-aluminum"] .knob-fidget-brush {
+	opacity: 0.5;
+}
+
+.knob-fidget-dial[data-knob-material="carbon-composite"] .knob-fidget-brush {
+	background:
+		repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0 2px, transparent 2px 8px),
+		repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.34) 0 2px, transparent 2px 8px);
+	mix-blend-mode: overlay;
+	opacity: 0.5;
+}
+
+@keyframes knob-detent-impact-a {
+	0% {
+		transform: translateY(0) rotateX(0deg) scale(1);
+	}
+
+	36% {
+		transform: translateY(var(--knob-impact-distance)) rotateX(var(--knob-impact-tilt)) scale(var(--knob-impact-scale));
+	}
+
+	100% {
+		transform: translateY(0) rotateX(0deg) scale(1);
+	}
+}
+
+@keyframes knob-detent-impact-b {
+	0% {
+		transform: translateY(0) rotateX(0deg) scale(1);
+	}
+
+	36% {
+		transform: translateY(var(--knob-impact-distance)) rotateX(var(--knob-impact-tilt)) scale(var(--knob-impact-scale));
+	}
+
+	100% {
+		transform: translateY(0) rotateX(0deg) scale(1);
+	}
+}

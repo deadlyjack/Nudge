@@ -1,0 +1,26 @@
+.fidget-card {
+	position: relative;
+	display: grid;
+	place-items: center;
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	min-height: 0;
+	aspect-ratio: 1;
+	border: 0;
+	border-radius: 50%;
+	padding: 0;
+	background: transparent;
+	cursor: pointer;
+	overflow: visible;
+	transition: transform 160ms ease;
+}
+
+.fidget-card:active {
+	transform: scale(0.94);
+}
+
+.fidget-card:focus-visible {
+	outline: 2px solid color-mix(in srgb, var(--fidget-accent) 70%, #ffffff);
+	outline-offset: 6px;
+}

@@ -1,0 +1,72 @@
+.nudge-app {
+	position: fixed;
+	inset: 0;
+	overflow: hidden;
+	background:
+		radial-gradient(circle at 12% 12%, rgba(138, 216, 255, 0.2), transparent 32%),
+		radial-gradient(circle at 85% 16%, rgba(255, 209, 102, 0.17), transparent 28%),
+		linear-gradient(160deg, #10141f 0%, #152019 48%, #201a27 100%);
+	color: #fbfbf3;
+	-webkit-tap-highlight-color: transparent;
+	touch-action: manipulation;
+}
+
+.nudge-app button {
+	font: inherit;
+	color: inherit;
+}
+
+.nudge-page-stack,
+.nudge-page-transition {
+	position: fixed;
+	inset: 0;
+}
+
+.nudge-page-stack {
+	isolation: isolate;
+}
+
+.nudge-page-transition {
+	pointer-events: none;
+}
+
+.nudge-page-transition.is-active {
+	z-index: 2;
+	pointer-events: auto;
+	animation: nudge-page-enter 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.nudge-page-transition.is-exiting {
+	z-index: 1;
+	animation: nudge-page-exit 220ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes nudge-page-enter {
+	from {
+		opacity: 0;
+		transform: translateY(14px) scale(0.985);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+@keyframes nudge-page-exit {
+	from {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+
+	to {
+		opacity: 0;
+		transform: translateY(-10px) scale(0.985);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.nudge-page-transition {
+		animation: none;
+	}
+}

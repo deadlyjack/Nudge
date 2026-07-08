@@ -1,0 +1,16 @@
+.toggle-fidget {
+	display: grid;
+	place-items: center;
+	width: min(72vw, 340px);
+	aspect-ratio: 1;
+}
+
+.toggle-fidget.is-icon {
+	width: 100%;
+	pointer-events: none;
+}
+
+.toggle-fidget.is-icon .toggle-fidget-button {
+	width: 80%;
+	height: 38%;
+}
