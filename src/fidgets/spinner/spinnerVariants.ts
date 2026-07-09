@@ -77,6 +77,7 @@ const minimumSpinnerFriction = Math.min(
 const maximumSpinnerFriction = Math.max(
 	...spinnersCollection.map((spinner) => spinner.friction),
 );
+const spinnerCoastFrictionScale = 0.38;
 
 interface SpinnerTypeAudioProfile {
 	antiThumpHighpassFrequencyOffset: number;
@@ -270,13 +271,17 @@ function getCollectionPhysicsSettings(
 	progress: number,
 ): SpinnerPhysicsSettings {
 	return {
-		baseDrag: collectionItem.friction,
-		friction: collectionItem.friction,
-		highSpeedDragScale: roundVariantValue(interpolate(0.72, 0.5, progress)),
+		baseDrag: roundVariantValue(
+			collectionItem.friction * spinnerCoastFrictionScale,
+		),
+		friction: roundVariantValue(
+			collectionItem.friction * spinnerCoastFrictionScale,
+		),
+		highSpeedDragScale: roundVariantValue(interpolate(0.62, 0.43, progress)),
 		inertia: roundVariantValue(interpolate(0.9, 1.75, progress)),
-		lowSpeedDragScale: roundVariantValue(interpolate(1.22, 1.04, progress)),
+		lowSpeedDragScale: roundVariantValue(interpolate(1.08, 0.94, progress)),
 		maxAngularVelocity: Math.round(interpolate(3200, 5400, progress)),
-		stopSpeed: roundVariantValue(interpolate(10, 3, progress)),
+		stopSpeed: roundVariantValue(interpolate(7, 2, progress)),
 		tickInterval: Math.round(interpolate(24, 45, progress)),
 		weight: collectionItem.weight,
 	};

@@ -39,6 +39,7 @@
 
 .fidget-shell-header-start {
 	display: flex;
+	grid-column: 1;
 	align-items: center;
 	justify-self: start;
 	gap: 8px;
@@ -47,6 +48,7 @@
 
 .fidget-shell-header-end {
 	display: flex;
+	grid-column: 3;
 	align-items: center;
 	justify-self: end;
 	justify-content: flex-end;
@@ -89,12 +91,14 @@
 }
 
 .fidget-shell-title {
+	position: absolute;
+	grid-column: 2;
+	width: 1px;
+	height: 1px;
 	margin: 0;
-	justify-self: center;
-	text-align: center;
-	font-size: 18px;
-	font-weight: 760;
-	letter-spacing: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
 }
 
 .fidget-shell-body {

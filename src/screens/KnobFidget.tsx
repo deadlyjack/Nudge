@@ -9,7 +9,7 @@ import { getKnobVariant } from "fidgets/knob/knobVariants";
 import { getShortestAngleDelta, normalizeAngle } from "lib/angle";
 import vibrate from "lib/haptics";
 import sounds from "lib/sounds";
-import { EllipsisVertical } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type { MutableRefObject, PointerEvent } from "react";
 import { useRef } from "react";
 
@@ -58,7 +58,7 @@ export default function KnobFidget({
 						onClick={onOpenSelector}
 						aria-label="Choose knob"
 					>
-						<EllipsisVertical size={24} strokeWidth={2.4} aria-hidden="true" />
+						<ChevronDown size={24} strokeWidth={2.4} aria-hidden="true" />
 					</button>
 				) : null
 			}

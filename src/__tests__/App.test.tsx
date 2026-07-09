@@ -54,7 +54,7 @@ test.each(
 
 	await userEvent.click(screen.getByRole("button", { name: `Open ${name}` }));
 
-	expect(screen.getByRole("heading", { name })).toBeTruthy();
+	expectShellTitleToBeAccessibleOnly(name);
 
 	for (const hint of fidgetHints) {
 		expect(screen.queryByText(hint)).toBeNull();
@@ -74,14 +74,12 @@ test("opens the default knob and selects a premium knob from the titlebar", asyn
 		screen.getByRole("button", { name: "Open Knob / Dial" }),
 	);
 
-	expect(
-		screen.getByRole("heading", { name: "Brushed Aluminum" }),
-	).toBeTruthy();
+	expectShellTitleToBeAccessibleOnly("Brushed Aluminum");
 	expect(screen.getByRole("button", { name: "Choose knob" })).toBeTruthy();
 
 	await userEvent.click(screen.getByRole("button", { name: "Choose knob" }));
 
-	expect(screen.getByRole("heading", { name: "Knob" })).toBeTruthy();
+	expectShellTitleToBeAccessibleOnly("Knob");
 	expect(
 		screen.getByRole("button", { name: "Open Polished Metal" }),
 	).toBeTruthy();
@@ -91,7 +89,7 @@ test("opens the default knob and selects a premium knob from the titlebar", asyn
 		screen.getByRole("button", { name: "Open Polished Metal" }),
 	);
 
-	expect(screen.getByRole("heading", { name: "Polished Metal" })).toBeTruthy();
+	expectShellTitleToBeAccessibleOnly("Polished Metal");
 	expect(window.localStorage.getItem("nudge.knob.selectedVariant")).toBe(
 		"knob-polished-metal",
 	);
@@ -120,7 +118,7 @@ test("persists Carbon Fiber knob selection to the home preview", async () => {
 		screen.getByRole("button", { name: "Open Carbon Fiber" }),
 	);
 
-	expect(screen.getByRole("heading", { name: "Carbon Fiber" })).toBeTruthy();
+	expectShellTitleToBeAccessibleOnly("Carbon Fiber");
 	expect(window.localStorage.getItem("nudge.knob.selectedVariant")).toBe(
 		"knob-carbon-fiber",
 	);
@@ -143,17 +141,17 @@ test("opens spinner 12 by default and selects another spinner from the titlebar"
 
 	await userEvent.click(screen.getByRole("button", { name: "Open Spinner" }));
 
-	expect(screen.getByRole("heading", { name: "Classic Tri" })).toBeTruthy();
+	expectShellTitleToBeAccessibleOnly("Classic Tri");
 	expect(screen.getByRole("button", { name: "Choose spinner" })).toBeTruthy();
 
 	await userEvent.click(screen.getByRole("button", { name: "Choose spinner" }));
 
-	expect(screen.getByRole("heading", { name: "Spinner" })).toBeTruthy();
+	expectShellTitleToBeAccessibleOnly("Spinner");
 	expect(screen.getByRole("button", { name: "Open Curved Bar" })).toBeTruthy();
 
 	await userEvent.click(screen.getByRole("button", { name: "Open Ring Tri" }));
 
-	expect(screen.getByRole("heading", { name: "Ring Tri" })).toBeTruthy();
+	expectShellTitleToBeAccessibleOnly("Ring Tri");
 	expect(window.localStorage.getItem("nudge.spinner.selectedVariant")).toBe(
 		"spinner-15",
 	);
@@ -175,7 +173,7 @@ test("returns from the spinner selector to the active spinner", async () => {
 		screen.getByRole("button", { name: "Back to fidgets" }),
 	);
 
-	expect(screen.getByRole("heading", { name: "Classic Tri" })).toBeTruthy();
+	expectShellTitleToBeAccessibleOnly("Classic Tri");
 });
 
 test("restores the selected spinner after app restart", async () => {
@@ -185,7 +183,7 @@ test("restores the selected spinner after app restart", async () => {
 
 	await userEvent.click(screen.getByRole("button", { name: "Open Spinner" }));
 
-	expect(screen.getByRole("heading", { name: "Ring Tri" })).toBeTruthy();
+	expectShellTitleToBeAccessibleOnly("Ring Tri");
 });
 
 test("counts taps and resets the counter", async () => {
@@ -218,3 +216,9 @@ test("counts taps and resets the counter", async () => {
 		screen.getByRole("button", { name: "Count 0. Tap to add one" }),
 	).toBeTruthy();
 });
+
+function expectShellTitleToBeAccessibleOnly(name: string) {
+	const heading = screen.getByRole("heading", { name });
+
+	expect(heading.textContent).toBe("");
+}

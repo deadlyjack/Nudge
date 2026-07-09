@@ -1,9 +1,12 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import vibrate from "lib/haptics";
 import store from "lib/store";
 import type { ComponentProps } from "react";
 import createSpinnerAudio from "../audio/createSpinnerAudio";
 import SpinnerFidget from "../SpinnerFidget";
+import { advanceSpinnerFrames } from "../spinnerPhysics";
 import { SpinnerVariantId } from "../spinnerTypes";
+import { getSpinnerVariant } from "../spinnerVariants";
 
 const mockCreateSpinnerAudioController = () => ({
 	dispose: jest.fn(),
@@ -40,6 +43,11 @@ jest.mock("../audio/createSpinnerAudio", () => ({
 	}),
 }));
 
+jest.mock("lib/haptics", () => ({
+	__esModule: true,
+	default: jest.fn(),
+}));
+
 jest.mock("lib/store", () => ({
 	__esModule: true,
 	default: {
@@ -50,6 +58,7 @@ jest.mock("lib/store", () => ({
 }));
 
 const mockStore = store as jest.Mocked<typeof store>;
+const mockVibrate = vibrate as jest.MockedFunction<typeof vibrate>;
 
 interface PointerCaptureElement extends HTMLElement {
 	setPointerCapture(pointerId: number): void;
@@ -70,6 +79,7 @@ test("renders the spinner fidget", () => {
 	renderSpinnerFidget();
 
 	expect(screen.getByRole("heading", { name: "Curved Bar" })).toBeTruthy();
+	expect(getShellTitleText()).toBe("");
 	expect(
 		screen.getByRole("button", { name: "Flick the spinner" }),
 	).toBeTruthy();
@@ -210,7 +220,10 @@ test("resets motion when released without movement", () => {
 	dispatchPointerEvent(spinner, "pointerup", 150, 0, 20);
 
 	expect(mockCanvasContextMethods.clearRect).toHaveBeenCalled();
+	expect(mockCanvasContextMethods.fill).not.toHaveBeenCalled();
+	expect(mockCanvasContextMethods.stroke).not.toHaveBeenCalled();
 	expect(rotor.style.getPropertyValue("--spinner-lobe-clarity")).toBe("1");
+	expect(screen.getByTestId("spinner-current-speed").textContent).toBe("0");
 
 	restoreBrowserMocks();
 });
@@ -259,6 +272,36 @@ test("accepts a drag flick and releases into inertial animation", () => {
 	expect(() => animationStep?.(56)).not.toThrow();
 	expect(mockSpinnerAudio.start).toHaveBeenCalled();
 	expect(mockSpinnerAudio.update).toHaveBeenCalled();
+
+	restoreBrowserMocks();
+});
+
+test("pulses and vibrates when a new best speed is reached", () => {
+	const restoreBrowserMocks = mockBrowserPointerSupport();
+	let animationStep: FrameRequestCallback | null = null;
+
+	window.requestAnimationFrame = (callback) => {
+		animationStep = callback;
+		return 1;
+	};
+
+	renderSpinnerFidget();
+
+	const spinner = screen.getByRole("button", {
+		name: "Flick the spinner",
+	}) as PointerCaptureElement;
+	const bestValue = getBestSpeedValue();
+
+	mockSpinnerBounds(spinner);
+
+	dispatchPointerEvent(spinner, "pointerdown", 150, 0, 10);
+	dispatchPointerEvent(spinner, "pointermove", 300, 150, 30);
+
+	expect(animationStep).not.toBeNull();
+	expect(() => animationStep?.(36)).not.toThrow();
+
+	expect(bestValue.classList.contains("is-best-updated")).toBe(true);
+	expect(mockVibrate).toHaveBeenCalledWith([4, 22, 8]);
 
 	restoreBrowserMocks();
 });
@@ -356,6 +399,132 @@ test("keeps slow drag and coast frames off the motion canvas", () => {
 	restoreBrowserMocks();
 });
 
+test("advances low frame rate coast by real elapsed time", () => {
+	const restoreBrowserMocks = mockBrowserPointerSupport();
+	const animationSteps: FrameRequestCallback[] = [];
+
+	window.requestAnimationFrame = (callback) => {
+		animationSteps.push(callback);
+		return animationSteps.length;
+	};
+
+	renderSpinnerFidget();
+
+	const spinner = screen.getByRole("button", {
+		name: "Flick the spinner",
+	}) as PointerCaptureElement;
+	const rotor = spinner.querySelector(".spinner-rotor") as HTMLElement;
+
+	mockSpinnerBounds(spinner);
+
+	dispatchPointerEvent(spinner, "pointerdown", 150, 0, 10);
+	dispatchPointerEvent(spinner, "pointermove", 300, 150, 30);
+
+	const dragStep = animationSteps.shift();
+
+	dragStep?.(36);
+	dispatchPointerEvent(spinner, "pointerup", 300, 150, 40);
+
+	const startSpeed = mockSpinnerAudio.start.mock.calls[0][0] as number;
+	const initialFrame = {
+		angle: getRotorAngle(rotor),
+		angularVelocity: startSpeed,
+	};
+	const initialCoastStep = animationSteps.shift();
+
+	initialCoastStep?.(40);
+	mockSpinnerAudio.update.mockClear();
+
+	const lowFrameRateStep = animationSteps.shift();
+
+	lowFrameRateStep?.(140);
+
+	const expectedFrame = advanceSpinnerFrames(
+		initialFrame,
+		0.1,
+		getSpinnerVariant(SpinnerVariantId.Spinner1).physics,
+	).frame;
+	const updateCalls = mockSpinnerAudio.update.mock.calls;
+	const updatePayload = updateCalls[updateCalls.length - 1][0] as {
+		speed: number;
+		timestamp: number;
+	};
+
+	expect(getRotorAngle(rotor)).toBeCloseTo(expectedFrame.angle, 3);
+	expect(updatePayload.speed).toBeCloseTo(expectedFrame.angularVelocity, 3);
+	expect(updatePayload.timestamp).toBe(140);
+
+	restoreBrowserMocks();
+});
+
+test("keeps current speed visible when grabbing a spinning rotor", () => {
+	const restoreBrowserMocks = mockBrowserPointerSupport();
+	const coastingSpinner = startCoastingSpinner();
+	const speedBeforeGrab = screen.getByTestId(
+		"spinner-current-speed",
+	).textContent;
+
+	clearCanvasMocks();
+	dispatchPointerEvent(coastingSpinner.spinner, "pointerdown", 150, 0, 150);
+
+	expect(screen.getByTestId("spinner-current-speed").textContent).toBe(
+		speedBeforeGrab,
+	);
+	expect(screen.getByTestId("spinner-current-speed").textContent).not.toBe("0");
+	expect(mockCanvasContextMethods.clearRect).toHaveBeenCalled();
+	expect(mockCanvasContextMethods.fill).not.toHaveBeenCalled();
+	expect(mockCanvasContextMethods.stroke).not.toHaveBeenCalled();
+	expect(
+		coastingSpinner.rotor.style.getPropertyValue("--spinner-lobe-clarity"),
+	).toBe("1");
+
+	clearCanvasMocks();
+	dispatchPointerEvent(coastingSpinner.spinner, "pointerup", 150, 0, 170);
+
+	expect(screen.getByTestId("spinner-current-speed").textContent).toBe("0");
+	expect(mockCanvasContextMethods.clearRect).toHaveBeenCalled();
+	expect(mockCanvasContextMethods.fill).not.toHaveBeenCalled();
+	expect(mockCanvasContextMethods.stroke).not.toHaveBeenCalled();
+	expect(
+		coastingSpinner.rotor.style.getPropertyValue("--spinner-lobe-clarity"),
+	).toBe("1");
+
+	restoreBrowserMocks();
+});
+
+test("adds momentum when dragging with the current spin", () => {
+	const restoreBrowserMocks = mockBrowserPointerSupport();
+	const coastingSpinner = startCoastingSpinner();
+
+	mockSpinnerAudio.start.mockClear();
+	dispatchPointerEvent(coastingSpinner.spinner, "pointerdown", 150, 0, 150);
+	dispatchPointerEvent(coastingSpinner.spinner, "pointermove", 300, 150, 170);
+	dispatchPointerEvent(coastingSpinner.spinner, "pointerup", 300, 150, 180);
+
+	const boostedSpeed = mockSpinnerAudio.start.mock.calls[0][0] as number;
+
+	expect(boostedSpeed).toBeGreaterThan(coastingSpinner.startSpeed);
+
+	restoreBrowserMocks();
+});
+
+test("counters momentum when dragging against the current spin", () => {
+	const restoreBrowserMocks = mockBrowserPointerSupport();
+	const coastingSpinner = startCoastingSpinner();
+
+	mockSpinnerAudio.start.mockClear();
+	dispatchPointerEvent(coastingSpinner.spinner, "pointerdown", 300, 150, 150);
+	dispatchPointerEvent(coastingSpinner.spinner, "pointermove", 150, 0, 170);
+	dispatchPointerEvent(coastingSpinner.spinner, "pointerup", 150, 0, 180);
+
+	const counteredSpeed = mockSpinnerAudio.start.mock.calls[0][0] as number;
+
+	expect(counteredSpeed).toBeLessThan(coastingSpinner.startSpeed);
+	expect(counteredSpeed).toBeLessThan(0);
+
+	restoreBrowserMocks();
+});
+
 test("loads saved best speed quietly on mount", async () => {
 	mockStore.get.mockResolvedValue(1800);
 
@@ -365,6 +534,8 @@ test("loads saved best speed quietly on mount", async () => {
 	await waitFor(() =>
 		expect(screen.getByTestId("spinner-best-speed").textContent).toBe("300"),
 	);
+	expect(getBestSpeedValue().classList.contains("is-best-updated")).toBe(false);
+	expect(mockVibrate).not.toHaveBeenCalledWith([4, 22, 8]);
 });
 
 test("resets motion when inertial animation stops", () => {
@@ -393,7 +564,7 @@ test("resets motion when inertial animation stops", () => {
 
 	let timestamp = 1200;
 
-	for (let stepIndex = 0; stepIndex < 420; stepIndex += 1) {
+	for (let stepIndex = 0; stepIndex < 1000; stepIndex += 1) {
 		const step = animationSteps.shift();
 
 		if (!step) {
@@ -493,6 +664,43 @@ function mockSpinnerBounds(spinner: PointerCaptureElement) {
 		}) as DOMRect;
 }
 
+function startCoastingSpinner() {
+	const animationSteps: FrameRequestCallback[] = [];
+
+	window.requestAnimationFrame = (callback) => {
+		animationSteps.push(callback);
+		return animationSteps.length;
+	};
+
+	renderSpinnerFidget();
+
+	const spinner = screen.getByRole("button", {
+		name: "Flick the spinner",
+	}) as PointerCaptureElement;
+	const rotor = spinner.querySelector(".spinner-rotor") as HTMLElement;
+
+	mockSpinnerBounds(spinner);
+	dispatchPointerEvent(spinner, "pointerdown", 150, 0, 10);
+	dispatchPointerEvent(spinner, "pointermove", 300, 150, 30);
+
+	const dragStep = animationSteps.shift();
+
+	dragStep?.(36);
+	dispatchPointerEvent(spinner, "pointerup", 300, 150, 40);
+
+	const startSpeed = mockSpinnerAudio.start.mock.calls[0][0] as number;
+	const coastStep = animationSteps.shift();
+
+	coastStep?.(140);
+
+	return {
+		animationSteps,
+		rotor,
+		spinner,
+		startSpeed,
+	};
+}
+
 function dispatchPointerEvent(
 	element: HTMLElement,
 	type: string,
@@ -510,4 +718,20 @@ function dispatchPointerEvent(
 	});
 
 	fireEvent(element, event);
+}
+
+function getRotorAngle(rotor: HTMLElement) {
+	const match = rotor.style.transform.match(/rotate\(([-\d.]+)deg\)/);
+
+	return match ? Number(match[1]) : 0;
+}
+
+function getBestSpeedValue() {
+	return screen
+		.getByTestId("spinner-best-speed")
+		.querySelector(".spinner-fidget-stat-value") as HTMLElement;
+}
+
+function getShellTitleText() {
+	return document.querySelector(".fidget-shell-title")?.textContent;
 }

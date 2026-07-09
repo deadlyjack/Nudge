@@ -2,7 +2,7 @@ import "./SpinnerFidget.scss";
 
 import FidgetShell from "components/FidgetShell";
 import vibrate from "lib/haptics";
-import { EllipsisVertical } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type { MutableRefObject, PointerEvent } from "react";
 import { useEffect, useMemo, useRef } from "react";
 
@@ -15,7 +15,7 @@ import {
 } from "./spinnerMotion";
 import {
 	addPointerSample,
-	advanceSpinnerFrame,
+	advanceSpinnerFrames,
 	clampAngularVelocity,
 	getDirectedAngleDelta,
 	getPointerAngle,
@@ -60,6 +60,8 @@ interface SpinnerMotionRefs {
 }
 
 const SPINNER_SPEED_DISPLAY_INTERVAL_MS = 80;
+const SPINNER_MAX_ANIMATION_FRAME_SECONDS = 0.18;
+const SPINNER_BEST_FEEDBACK_PATTERN = [4, 22, 8];
 
 export default function SpinnerFidget({
 	onBack,
@@ -81,6 +83,7 @@ export default function SpinnerFidget({
 	const pendingDragFrameRef = useRef<SpinnerFrame | null>(null);
 	const previousFrameTimeRef = useRef<number | null>(null);
 	const dragStateRef = useRef<SpinnerDragState | null>(null);
+	const animationRemainderRef = useRef(0);
 	const carryVelocityRef = useRef(0);
 	const lastHapticTickRef = useRef(0);
 	const audioRef = useRef<SpinnerAudioController | null>(null);
@@ -130,6 +133,7 @@ export default function SpinnerFidget({
 		cancelSpinnerAnimation(animationFrameRef);
 		cancelPendingDragFrame(dragVisualFrameRef, pendingDragFrameRef);
 		dragStateRef.current = null;
+		animationRemainderRef.current = 0;
 		previousFrameTimeRef.current = null;
 		frameRef.current = {
 			angle: frameRef.current.angle,
@@ -212,7 +216,7 @@ export default function SpinnerFidget({
 						onClick={onOpenSelector}
 						aria-label="Choose spinner"
 					>
-						<EllipsisVertical size={24} strokeWidth={2.4} aria-hidden="true" />
+						<ChevronDown size={24} strokeWidth={2.4} aria-hidden="true" />
 					</button>
 				) : null
 			}
@@ -235,6 +239,7 @@ export default function SpinnerFidget({
 							dragVisualFrameRef,
 							pendingDragFrameRef,
 							previousFrameTimeRef,
+							animationRemainderRef,
 							dragStateRef,
 							carryVelocityRef,
 							audioRef.current,
@@ -273,6 +278,7 @@ export default function SpinnerFidget({
 							dragVisualFrameRef,
 							pendingDragFrameRef,
 							previousFrameTimeRef,
+							animationRemainderRef,
 							dragStateRef,
 							audioRef.current,
 							lastHapticTickRef,
@@ -293,6 +299,7 @@ export default function SpinnerFidget({
 							dragVisualFrameRef,
 							pendingDragFrameRef,
 							previousFrameTimeRef,
+							animationRemainderRef,
 							dragStateRef,
 							audioRef.current,
 							lastHapticTickRef,
@@ -336,6 +343,7 @@ function startPointerSpin(
 	dragVisualFrameRef: MutableRefObject<number | null>,
 	pendingDragFrameRef: MutableRefObject<SpinnerFrame | null>,
 	previousFrameTimeRef: MutableRefObject<number | null>,
+	animationRemainderRef: MutableRefObject<number>,
 	dragStateRef: MutableRefObject<SpinnerDragState | null>,
 	carryVelocityRef: MutableRefObject<number>,
 	audio: SpinnerAudioController | null,
@@ -356,8 +364,8 @@ function startPointerSpin(
 	audio?.unlock();
 	resetSpinnerMotion(canvas, rotor, motionRefs);
 	previousFrameTimeRef.current = null;
+	animationRemainderRef.current = 0;
 	carryVelocityRef.current = frameRef.current.angularVelocity;
-	frameRef.current = { ...frameRef.current, angularVelocity: 0 };
 	applySpinnerFrame(
 		rotor,
 		canvas,
@@ -370,6 +378,8 @@ function startPointerSpin(
 		variant,
 		color,
 		true,
+		false,
+		false,
 	);
 
 	const bounds = element.getBoundingClientRect();
@@ -461,8 +471,10 @@ function updatePointerSpin(
 		timestamp: event.timeStamp,
 	});
 	const angularVelocity = clampAngularVelocity(
-		getSampledUnwrappedAngularVelocity(samples, variant.physics) +
-			carryVelocityRef.current * 0.12,
+		getComposedDragAngularVelocity(
+			getSampledUnwrappedAngularVelocity(samples, variant.physics),
+			carryVelocityRef.current,
+		),
 		variant.physics,
 	);
 	const nextFrame = { angle, angularVelocity };
@@ -508,6 +520,7 @@ function releasePointerSpin(
 	dragVisualFrameRef: MutableRefObject<number | null>,
 	pendingDragFrameRef: MutableRefObject<SpinnerFrame | null>,
 	previousFrameTimeRef: MutableRefObject<number | null>,
+	animationRemainderRef: MutableRefObject<number>,
 	dragStateRef: MutableRefObject<SpinnerDragState | null>,
 	audio: SpinnerAudioController | null,
 	lastHapticTickRef: MutableRefObject<number>,
@@ -556,6 +569,8 @@ function releasePointerSpin(
 			variant,
 			color,
 			true,
+			true,
+			false,
 		);
 		resetSpinnerMotion(canvas, rotor, motionRefs);
 		audio?.stop();
@@ -572,6 +587,7 @@ function releasePointerSpin(
 		element,
 		animationFrameRef,
 		previousFrameTimeRef,
+		animationRemainderRef,
 		audio,
 		lastHapticTickRef,
 		statsRefs,
@@ -588,6 +604,7 @@ function startSpinnerAnimation(
 	element: HTMLButtonElement | null,
 	animationFrameRef: MutableRefObject<number | null>,
 	previousFrameTimeRef: MutableRefObject<number | null>,
+	animationRemainderRef: MutableRefObject<number>,
 	audio: SpinnerAudioController | null,
 	lastHapticTickRef: MutableRefObject<number>,
 	statsRefs: SpinnerStatsRefs,
@@ -605,27 +622,27 @@ function startSpinnerAnimation(
 
 	cancelSpinnerAnimation(animationFrameRef);
 	previousFrameTimeRef.current = null;
+	animationRemainderRef.current = 0;
 	audio?.start(frameRef.current.angularVelocity);
 
 	const step = (timestamp: number) => {
 		const previousTimestamp = previousFrameTimeRef.current ?? timestamp;
 		const elapsedSeconds = Math.min(
 			(timestamp - previousTimestamp) / 1000,
-			0.05,
+			SPINNER_MAX_ANIMATION_FRAME_SECONDS,
 		);
-		const previousAngle = frameRef.current.angle;
-		const nextFrame = advanceSpinnerFrame(
+		animationRemainderRef.current += elapsedSeconds;
+
+		const advanceResult = advanceSpinnerFrames(
 			frameRef.current,
-			elapsedSeconds,
+			animationRemainderRef.current,
 			variant.physics,
 		);
-		const tickCrossings = getTickCrossings(
-			previousAngle,
-			nextFrame.angle,
-			variant.physics.tickInterval,
-		);
+		const nextFrame = advanceResult.frame;
+		const tickCrossings = advanceResult.tickCrossings;
 
 		previousFrameTimeRef.current = timestamp;
+		animationRemainderRef.current = advanceResult.remainingElapsedSeconds;
 		applySpinnerFrame(
 			rotor,
 			canvas,
@@ -677,6 +694,8 @@ function applySpinnerFrame(
 	variant: SpinnerVariant,
 	color: SpinnerColorOption,
 	forceStats = false,
+	allowBestFeedback = !forceStats,
+	allowMotionBlur = true,
 ) {
 	frameRef.current = frame;
 	updateSpinnerStats(
@@ -685,25 +704,20 @@ function applySpinnerFrame(
 		timestamp,
 		variant,
 		forceStats,
+		allowBestFeedback,
 	);
 
 	if (rotor) {
-		const visuals = drawSpinnerMotionBlur(
-			canvas,
-			frame,
-			variant.motion,
-			color,
-			motionRefs.blurActiveRef.current,
-		);
-
-		motionRefs.blurActiveRef.current = visuals.active === 1;
+		const lobeClarity = allowMotionBlur
+			? updateSpinnerMotionBlur(canvas, frame, variant, color, motionRefs)
+			: clearSpinnerHeldMotion(canvas, motionRefs);
 
 		if (motionRefs.displayedAngleRef.current !== frame.angle) {
 			motionRefs.displayedAngleRef.current = frame.angle;
 			rotor.style.transform = `translateZ(0) rotate(${frame.angle}deg)`;
 		}
 
-		rotor.style.setProperty("--spinner-lobe-clarity", `${visuals.lobeClarity}`);
+		rotor.style.setProperty("--spinner-lobe-clarity", `${lobeClarity}`);
 	}
 
 	element?.classList.toggle("is-fast", Math.abs(frame.angularVelocity) > 1600);
@@ -813,12 +827,43 @@ function resetSpinnerMotion(
 	rotor?.style.setProperty("--spinner-lobe-clarity", "1");
 }
 
+function updateSpinnerMotionBlur(
+	canvas: HTMLCanvasElement | null,
+	frame: SpinnerFrame,
+	variant: SpinnerVariant,
+	color: SpinnerColorOption,
+	motionRefs: SpinnerMotionRefs,
+) {
+	const visuals = drawSpinnerMotionBlur(
+		canvas,
+		frame,
+		variant.motion,
+		color,
+		motionRefs.blurActiveRef.current,
+	);
+
+	motionRefs.blurActiveRef.current = visuals.active === 1;
+
+	return visuals.lobeClarity;
+}
+
+function clearSpinnerHeldMotion(
+	canvas: HTMLCanvasElement | null,
+	motionRefs: SpinnerMotionRefs,
+) {
+	clearSpinnerMotionCanvas(canvas);
+	motionRefs.blurActiveRef.current = false;
+
+	return 1;
+}
+
 function updateSpinnerStats(
 	statsRefs: SpinnerStatsRefs,
 	speed: number,
 	timestamp: number,
 	variant: SpinnerVariant,
 	force = false,
+	allowBestFeedback = !force,
 ) {
 	const absoluteSpeed = Math.abs(speed);
 	const displayedSpeed = Math.round(absoluteSpeed);
@@ -853,6 +898,22 @@ function updateSpinnerStats(
 				formatSpinnerSpeed(bestSpeed);
 		}
 	}
+
+	if (bestSpeedChanged && allowBestFeedback) {
+		triggerBestScoreFeedback(statsRefs);
+	}
+}
+
+function triggerBestScoreFeedback(statsRefs: SpinnerStatsRefs) {
+	const bestValue = statsRefs.bestValueRef.current;
+
+	if (bestValue) {
+		bestValue.classList.remove("is-best-updated");
+		bestValue.getBoundingClientRect();
+		bestValue.classList.add("is-best-updated");
+	}
+
+	vibrate(SPINNER_BEST_FEEDBACK_PATTERN);
 }
 
 function shouldUpdateCurrentSpeed(
@@ -882,6 +943,20 @@ function handleTickFeedback(
 		lastHapticTickRef.current = timestamp;
 		vibrate(getHapticDuration(speed));
 	}
+}
+
+function getComposedDragAngularVelocity(
+	dragVelocity: number,
+	carryVelocity: number,
+) {
+	if (carryVelocity === 0 || dragVelocity === 0) {
+		return dragVelocity || carryVelocity;
+	}
+
+	const sameDirection = Math.sign(dragVelocity) === Math.sign(carryVelocity);
+	const carryScale = sameDirection ? 0.42 : 0.68;
+
+	return dragVelocity + carryVelocity * carryScale;
 }
 
 function cancelSpinnerAnimation(

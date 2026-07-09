@@ -6,10 +6,17 @@ import type {
 	SpinnerPointerSample,
 } from "./spinnerTypes";
 
+interface SpinnerFrameAdvanceResult {
+	frame: SpinnerFrame;
+	remainingElapsedSeconds: number;
+	tickCrossings: number;
+}
+
 export const SPINNER_DRAG = 0.34;
 export const SPINNER_MAX_SPEED = 4200;
 export const SPINNER_DIRECTION_AMBIGUITY = 30;
 export const SPINNER_MOVEMENT_THRESHOLD = 5;
+export const SPINNER_SIMULATION_STEP_SECONDS = 1 / 120;
 export const SPINNER_STOP_SPEED = 5;
 export const SPINNER_TICK_INTERVAL = 30;
 export const defaultSpinnerPhysicsSettings: SpinnerPhysicsSettings = {
@@ -220,6 +227,48 @@ export function advanceSpinnerFrame(
 	);
 
 	return { angle, angularVelocity };
+}
+
+export function advanceSpinnerFrames(
+	frame: SpinnerFrame,
+	elapsedSeconds: number,
+	settings = defaultSpinnerPhysicsSettings,
+	stepSeconds = SPINNER_SIMULATION_STEP_SECONDS,
+): SpinnerFrameAdvanceResult {
+	if (elapsedSeconds <= 0 || stepSeconds <= 0) {
+		return {
+			frame,
+			remainingElapsedSeconds: Math.max(elapsedSeconds, 0),
+			tickCrossings: 0,
+		};
+	}
+
+	let currentFrame = frame;
+	let remainingElapsedSeconds = elapsedSeconds;
+	let tickCrossings = 0;
+
+	while (remainingElapsedSeconds + Number.EPSILON >= stepSeconds) {
+		const previousAngle = currentFrame.angle;
+
+		currentFrame = advanceSpinnerFrame(currentFrame, stepSeconds, settings);
+		tickCrossings += getTickCrossings(
+			previousAngle,
+			currentFrame.angle,
+			settings.tickInterval,
+		);
+		remainingElapsedSeconds -= stepSeconds;
+
+		if (currentFrame.angularVelocity === 0) {
+			remainingElapsedSeconds = 0;
+			break;
+		}
+	}
+
+	return {
+		frame: currentFrame,
+		remainingElapsedSeconds,
+		tickCrossings,
+	};
 }
 
 export function decayAngularVelocity(

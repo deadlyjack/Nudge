@@ -42,3 +42,24 @@
 .spinner-fidget-stat-best .spinner-fidget-stat-value {
 	color: color-mix(in srgb, var(--fidget-accent) 82%, white);
 }
+
+.spinner-fidget-stat-value.is-best-updated {
+	animation: spinner-best-updated 520ms ease-out both;
+}
+
+@keyframes spinner-best-updated {
+	0% {
+		transform: scale(1);
+		text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+	}
+
+	38% {
+		transform: scale(1.18);
+		text-shadow: 0 0 18px color-mix(in srgb, var(--fidget-accent) 72%, transparent);
+	}
+
+	100% {
+		transform: scale(1);
+		text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+	}
+}

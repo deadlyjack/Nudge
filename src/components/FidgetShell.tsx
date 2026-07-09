@@ -43,7 +43,7 @@ export default function FidgetShell({
 					</button>
 					{headerStart}
 				</div>
-				<h1 className="fidget-shell-title">{title}</h1>
+				<h1 className="fidget-shell-title" aria-label={title} />
 				<div className="fidget-shell-header-end">{headerEnd}</div>
 			</header>
 			<div className="fidget-shell-body">{children}</div>

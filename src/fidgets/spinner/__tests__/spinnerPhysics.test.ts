@@ -1,6 +1,7 @@
 import {
 	addPointerSample,
 	advanceSpinnerFrame,
+	advanceSpinnerFrames,
 	clampAngularVelocity,
 	decayAngularVelocity,
 	getAngularVelocity,
@@ -43,6 +44,33 @@ test("decays angular velocity over time", () => {
 
 test("keeps enough momentum for a longer coast", () => {
 	expect(decayAngularVelocity(1000, 1)).toBeGreaterThan(700);
+});
+
+test("keeps spinner variant momentum for a much longer coast", () => {
+	const spinner1 = getSpinnerVariant(SpinnerVariantId.Spinner1);
+	const frame = advanceSpinnerFrames(
+		{ angle: 0, angularVelocity: 1000 },
+		3,
+		spinner1.physics,
+	).frame;
+
+	expect(frame.angularVelocity).toBeGreaterThan(650);
+});
+
+test("advances consistently across low and high frame rates", () => {
+	const spinner1 = getSpinnerVariant(SpinnerVariantId.Spinner1);
+	const lowFrameRateFrame = advanceSpinnerSequence(30, 2, spinner1.physics);
+	const highFrameRateFrame = advanceSpinnerSequence(120, 2, spinner1.physics);
+
+	expect(lowFrameRateFrame.angularVelocity).toBeCloseTo(
+		highFrameRateFrame.angularVelocity,
+		6,
+	);
+	expect(
+		Math.abs(
+			getShortestAngleDelta(lowFrameRateFrame.angle, highFrameRateFrame.angle),
+		),
+	).toBeLessThan(0.001);
 });
 
 test("decays higher-friction basic spinners faster than premium spinners", () => {
@@ -182,4 +210,19 @@ function createBounds() {
 		x: 0,
 		y: 0,
 	} as DOMRect;
+}
+
+function advanceSpinnerSequence(
+	frameRate: number,
+	seconds: number,
+	settings = getSpinnerVariant(SpinnerVariantId.Spinner1).physics,
+) {
+	let frame = { angle: 0, angularVelocity: 3000 };
+	const frameCount = frameRate * seconds;
+
+	for (let index = 0; index < frameCount; index += 1) {
+		frame = advanceSpinnerFrames(frame, 1 / frameRate, settings).frame;
+	}
+
+	return frame;
 }
