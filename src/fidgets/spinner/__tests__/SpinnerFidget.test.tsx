@@ -140,6 +140,19 @@ test("loads best speed separately for each spinner type", async () => {
 	expect(screen.getByTestId("spinner-current-speed").textContent).toBe("0");
 });
 
+test("restores saved rotor angle for the selected spinner", () => {
+	window.localStorage.setItem("nudge.spinner.angle.spinner-1", "123");
+
+	renderSpinnerFidget();
+
+	const spinner = screen.getByRole("button", {
+		name: "Flick the spinner",
+	});
+	const rotor = spinner.querySelector(".spinner-rotor") as HTMLElement;
+
+	expect(rotor.style.transform).toBe("translateZ(0) rotate(123deg)");
+});
+
 test("uses selected spinner 15 and keeps flicking usable", () => {
 	const restoreBrowserMocks = mockBrowserPointerSupport();
 	let animationStep: FrameRequestCallback | null = null;
@@ -271,6 +284,126 @@ test("accepts a drag flick and releases into inertial animation", () => {
 	expect(animationStep).not.toBeNull();
 	expect(() => animationStep?.(56)).not.toThrow();
 	expect(mockSpinnerAudio.start).toHaveBeenCalled();
+	expect(mockSpinnerAudio.update).toHaveBeenCalled();
+
+	restoreBrowserMocks();
+});
+
+test("reports active coast frames to the parent", () => {
+	const restoreBrowserMocks = mockBrowserPointerSupport();
+	const onFrameChange = jest.fn();
+	const animationSteps: FrameRequestCallback[] = [];
+
+	window.requestAnimationFrame = (callback) => {
+		animationSteps.push(callback);
+		return animationSteps.length;
+	};
+
+	renderSpinnerFidget({ onFrameChange });
+
+	const spinner = screen.getByRole("button", {
+		name: "Flick the spinner",
+	}) as PointerCaptureElement;
+
+	mockSpinnerBounds(spinner);
+
+	dispatchPointerEvent(spinner, "pointerdown", 150, 0, 10);
+	dispatchPointerEvent(spinner, "pointermove", 300, 150, 30);
+
+	const dragStep = animationSteps.shift();
+
+	dragStep?.(36);
+	dispatchPointerEvent(spinner, "pointerup", 300, 150, 40);
+
+	const coastStep = animationSteps.shift();
+
+	coastStep?.(140);
+
+	const reportedFrames = onFrameChange.mock.calls.map(
+		([frame]) => frame as { angle: number; angularVelocity: number },
+	);
+
+	expect(
+		reportedFrames.some((frame) => Math.abs(frame.angularVelocity) > 0),
+	).toBe(true);
+	expect(reportedFrames[reportedFrames.length - 1].angle).toBeCloseTo(
+		getRotorAngle(spinner.querySelector(".spinner-rotor") as HTMLElement),
+		3,
+	);
+
+	restoreBrowserMocks();
+});
+
+test("syncs hero-owned frame updates without drawing motion blur", () => {
+	const restoreBrowserMocks = mockBrowserPointerSupport();
+	const initialFrame = { angle: 24, angularVelocity: 1500 };
+	const liveFrame = { angle: 92, angularVelocity: 1320 };
+	const view = renderSpinnerFidget({
+		heroHidden: true,
+		initialFrame,
+	});
+	const spinner = screen.getByRole("button", {
+		name: "Flick the spinner",
+	});
+	const rotor = spinner.querySelector(".spinner-rotor") as HTMLElement;
+
+	mockSpinnerBounds(spinner as PointerCaptureElement);
+	clearCanvasMocks();
+	view.rerender(
+		<SpinnerFidget
+			heroHidden
+			initialFrame={liveFrame}
+			onBack={() => undefined}
+			variantId={SpinnerVariantId.Spinner1}
+		/>,
+	);
+
+	expect(rotor.style.transform).toBe("translateZ(0) rotate(92deg)");
+	expect(mockCanvasContextMethods.clearRect).toHaveBeenCalled();
+	expect(mockCanvasContextMethods.fill).not.toHaveBeenCalled();
+	expect(mockCanvasContextMethods.stroke).not.toHaveBeenCalled();
+	expect(rotor.style.getPropertyValue("--spinner-lobe-clarity")).toBe("1");
+
+	restoreBrowserMocks();
+});
+
+test("resumes coast after the hero releases the spinner page", () => {
+	const restoreBrowserMocks = mockBrowserPointerSupport();
+	const animationSteps: FrameRequestCallback[] = [];
+	const liveFrame = { angle: 38, angularVelocity: 1800 };
+
+	window.requestAnimationFrame = (callback) => {
+		animationSteps.push(callback);
+		return animationSteps.length;
+	};
+
+	const view = renderSpinnerFidget({
+		heroHidden: true,
+		initialFrame: liveFrame,
+	});
+	const spinner = screen.getByRole("button", {
+		name: "Flick the spinner",
+	});
+	const rotor = spinner.querySelector(".spinner-rotor") as HTMLElement;
+
+	view.rerender(
+		<SpinnerFidget
+			initialFrame={liveFrame}
+			onBack={() => undefined}
+			variantId={SpinnerVariantId.Spinner1}
+		/>,
+	);
+
+	expect(mockSpinnerAudio.start).toHaveBeenCalledWith(
+		liveFrame.angularVelocity,
+	);
+
+	const firstCoastStep = animationSteps.shift();
+	firstCoastStep?.(100);
+	const secondCoastStep = animationSteps.shift();
+	secondCoastStep?.(132);
+
+	expect(getRotorAngle(rotor)).not.toBeCloseTo(liveFrame.angle, 3);
 	expect(mockSpinnerAudio.update).toHaveBeenCalled();
 
 	restoreBrowserMocks();

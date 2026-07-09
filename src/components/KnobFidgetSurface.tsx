@@ -11,6 +11,8 @@ interface KnobFidgetSurfaceProps {
 	detentImpulse?: KnobDetentImpulse;
 	dialRef?: RefObject<HTMLButtonElement | null>;
 	disabled?: boolean;
+	heroHidden?: boolean;
+	heroId?: string;
 	markerRotorRef?: MutableRefObject<HTMLSpanElement | null>;
 	mode?: "full" | "icon";
 	motionRef?: MutableRefObject<HTMLSpanElement | null>;
@@ -27,6 +29,8 @@ export default function KnobFidgetSurface({
 	detentImpulse,
 	dialRef,
 	disabled,
+	heroHidden,
+	heroId,
 	markerRotorRef,
 	mode = "full",
 	motionRef,
@@ -44,6 +48,8 @@ export default function KnobFidgetSurface({
 				detentImpulse={detentImpulse}
 				dialRef={dialRef}
 				disabled={disabled}
+				heroHidden={heroHidden}
+				heroId={heroId}
 				markerRotorRef={markerRotorRef}
 				motionRef={motionRef}
 				onPointerCancel={onPointerCancel}

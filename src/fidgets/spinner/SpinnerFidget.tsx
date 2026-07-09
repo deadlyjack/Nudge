@@ -28,7 +28,10 @@ import {
 import {
 	formatSpinnerSpeed,
 	readBestSpinnerSpeed,
+	readInitialSpinnerAngle,
+	readSpinnerAngle,
 	writeBestSpinnerSpeed,
+	writeSpinnerAngle,
 } from "./spinnerStats";
 import type {
 	SpinnerColorOption,
@@ -40,6 +43,9 @@ import type {
 import { getSpinnerVariant } from "./spinnerVariants";
 
 interface SpinnerFidgetProps {
+	heroHidden?: boolean;
+	initialFrame?: SpinnerFrame;
+	onFrameChange?: (frame: SpinnerFrame) => void;
 	onBack: () => void;
 	onOpenSelector?: () => void;
 	variantId: SpinnerVariantId;
@@ -64,6 +70,9 @@ const SPINNER_MAX_ANIMATION_FRAME_SECONDS = 0.18;
 const SPINNER_BEST_FEEDBACK_PATTERN = [4, 22, 8];
 
 export default function SpinnerFidget({
+	heroHidden,
+	initialFrame,
+	onFrameChange,
 	onBack,
 	onOpenSelector,
 	variantId,
@@ -87,7 +96,12 @@ export default function SpinnerFidget({
 	const carryVelocityRef = useRef(0);
 	const lastHapticTickRef = useRef(0);
 	const audioRef = useRef<SpinnerAudioController | null>(null);
-	const frameRef = useRef<SpinnerFrame>({ angle: 0, angularVelocity: 0 });
+	const frameRef = useRef<SpinnerFrame>({
+		...getInitialSpinnerFrame(activeVariant.id, initialFrame),
+	});
+	const initialFrameRef = useRef(initialFrame);
+	const onFrameChangeRef = useRef(onFrameChange);
+	const previousHeroHiddenRef = useRef(heroHidden ?? false);
 	const blurActiveRef = useRef(false);
 	const displayedAngleRef = useRef<number | null>(null);
 	const bestSpeedRef = useRef(0);
@@ -114,6 +128,79 @@ export default function SpinnerFidget({
 	);
 
 	useEffect(() => {
+		initialFrameRef.current = initialFrame;
+	}, [initialFrame]);
+
+	useEffect(() => {
+		onFrameChangeRef.current = onFrameChange;
+	}, [onFrameChange]);
+
+	useEffect(() => {
+		if (!heroHidden || !initialFrame) {
+			return;
+		}
+
+		cancelSpinnerAnimation(animationFrameRef);
+		cancelPendingDragFrame(dragVisualFrameRef, pendingDragFrameRef);
+		audioRef.current?.stop();
+		dragStateRef.current = null;
+		previousFrameTimeRef.current = null;
+		animationRemainderRef.current = 0;
+		frameRef.current = initialFrame;
+		applySpinnerFrame(
+			rotorRef.current,
+			canvasRef.current,
+			spinnerRef.current,
+			statsRefs,
+			motionRefs,
+			onFrameChangeRef,
+			frameRef,
+			initialFrame,
+			0,
+			activeVariant,
+			activeColor,
+			true,
+			false,
+			false,
+		);
+	}, [
+		activeColor,
+		activeVariant,
+		heroHidden,
+		initialFrame,
+		motionRefs,
+		statsRefs,
+	]);
+
+	useEffect(() => {
+		const wasHeroHidden = previousHeroHiddenRef.current;
+		const isHeroHidden = heroHidden ?? false;
+
+		previousHeroHiddenRef.current = isHeroHidden;
+
+		if (!wasHeroHidden || isHeroHidden || dragStateRef.current) {
+			return;
+		}
+
+		startSpinnerAnimation(
+			rotorRef.current,
+			canvasRef.current,
+			spinnerRef.current,
+			animationFrameRef,
+			previousFrameTimeRef,
+			animationRemainderRef,
+			audioRef.current,
+			lastHapticTickRef,
+			statsRefs,
+			motionRefs,
+			onFrameChangeRef,
+			frameRef,
+			activeVariant,
+			activeColor,
+		);
+	}, [activeColor, activeVariant, heroHidden, motionRefs, statsRefs]);
+
+	useEffect(() => {
 		const audio = createSpinnerAudio(activeVariant.audio);
 
 		audioRef.current = audio;
@@ -135,10 +222,12 @@ export default function SpinnerFidget({
 		dragStateRef.current = null;
 		animationRemainderRef.current = 0;
 		previousFrameTimeRef.current = null;
-		frameRef.current = {
-			angle: frameRef.current.angle,
-			angularVelocity: 0,
-		};
+		const initialFrame = getInitialSpinnerFrame(
+			activeVariant.id,
+			initialFrameRef.current,
+		);
+
+		frameRef.current = initialFrame;
 		bestSpeedRef.current = 0;
 		displayedSpeedRef.current = -1;
 		displayedBestSpeedRef.current = -1;
@@ -150,6 +239,7 @@ export default function SpinnerFidget({
 			spinnerRef.current,
 			statsRefs,
 			motionRefs,
+			onFrameChangeRef,
 			frameRef,
 			frameRef.current,
 			0,
@@ -157,6 +247,34 @@ export default function SpinnerFidget({
 			activeColor,
 			true,
 		);
+
+		if (!initialFrameRef.current) {
+			readSpinnerAngle(activeVariant.id, initialFrame.angle)
+				.then((angle) => {
+					if (!mounted || dragStateRef.current) {
+						return;
+					}
+
+					frameRef.current = { ...frameRef.current, angle };
+					applySpinnerFrame(
+						rotorRef.current,
+						canvasRef.current,
+						spinnerRef.current,
+						statsRefs,
+						motionRefs,
+						onFrameChangeRef,
+						frameRef,
+						frameRef.current,
+						0,
+						activeVariant,
+						activeColor,
+						true,
+						false,
+						false,
+					);
+				})
+				.catch(console.error);
+		}
 
 		readBestSpinnerSpeed(activeVariant.id)
 			.then((bestSpeed) => {
@@ -171,6 +289,9 @@ export default function SpinnerFidget({
 
 		return () => {
 			mounted = false;
+			writeSpinnerAngle(frameRef.current.angle, activeVariant.id).catch(
+				console.error,
+			);
 		};
 	}, [activeColor, activeVariant, motionRefs, statsRefs]);
 
@@ -181,6 +302,7 @@ export default function SpinnerFidget({
 			spinnerRef.current,
 			statsRefs,
 			motionRefs,
+			onFrameChangeRef,
 			frameRef,
 			frameRef.current,
 			0,
@@ -227,6 +349,9 @@ export default function SpinnerFidget({
 					bodyRef={spinnerRef}
 					canvasRef={canvasRef}
 					color={activeColor}
+					angle={frameRef.current.angle}
+					heroHidden={heroHidden}
+					heroId="spinner"
 					rotorRef={rotorRef}
 					variant={activeVariant}
 					onPointerDown={(event) =>
@@ -245,6 +370,7 @@ export default function SpinnerFidget({
 							audioRef.current,
 							statsRefs,
 							motionRefs,
+							onFrameChangeRef,
 							frameRef,
 							activeVariant,
 							activeColor,
@@ -263,6 +389,7 @@ export default function SpinnerFidget({
 							lastHapticTickRef,
 							statsRefs,
 							motionRefs,
+							onFrameChangeRef,
 							frameRef,
 							activeVariant,
 							activeColor,
@@ -284,6 +411,7 @@ export default function SpinnerFidget({
 							lastHapticTickRef,
 							statsRefs,
 							motionRefs,
+							onFrameChangeRef,
 							frameRef,
 							activeVariant,
 							activeColor,
@@ -305,6 +433,7 @@ export default function SpinnerFidget({
 							lastHapticTickRef,
 							statsRefs,
 							motionRefs,
+							onFrameChangeRef,
 							frameRef,
 							activeVariant,
 							activeColor,
@@ -349,6 +478,9 @@ function startPointerSpin(
 	audio: SpinnerAudioController | null,
 	statsRefs: SpinnerStatsRefs,
 	motionRefs: SpinnerMotionRefs,
+	onFrameChangeRef: MutableRefObject<
+		((frame: SpinnerFrame) => void) | undefined
+	>,
 	frameRef: MutableRefObject<SpinnerFrame>,
 	variant: SpinnerVariant,
 	color: SpinnerColorOption,
@@ -372,6 +504,7 @@ function startPointerSpin(
 		element,
 		statsRefs,
 		motionRefs,
+		onFrameChangeRef,
 		frameRef,
 		frameRef.current,
 		event.timeStamp,
@@ -417,6 +550,9 @@ function updatePointerSpin(
 	lastHapticTickRef: MutableRefObject<number>,
 	statsRefs: SpinnerStatsRefs,
 	motionRefs: SpinnerMotionRefs,
+	onFrameChangeRef: MutableRefObject<
+		((frame: SpinnerFrame) => void) | undefined
+	>,
 	frameRef: MutableRefObject<SpinnerFrame>,
 	variant: SpinnerVariant,
 	color: SpinnerColorOption,
@@ -497,6 +633,7 @@ function updatePointerSpin(
 		pendingDragFrameRef,
 		statsRefs,
 		motionRefs,
+		onFrameChangeRef,
 		frameRef,
 		nextFrame,
 		event.timeStamp,
@@ -526,6 +663,9 @@ function releasePointerSpin(
 	lastHapticTickRef: MutableRefObject<number>,
 	statsRefs: SpinnerStatsRefs,
 	motionRefs: SpinnerMotionRefs,
+	onFrameChangeRef: MutableRefObject<
+		((frame: SpinnerFrame) => void) | undefined
+	>,
 	frameRef: MutableRefObject<SpinnerFrame>,
 	variant: SpinnerVariant,
 	color: SpinnerColorOption,
@@ -544,6 +684,7 @@ function releasePointerSpin(
 		pendingDragFrameRef,
 		statsRefs,
 		motionRefs,
+		onFrameChangeRef,
 		frameRef,
 		variant,
 		color,
@@ -563,6 +704,7 @@ function releasePointerSpin(
 			element,
 			statsRefs,
 			motionRefs,
+			onFrameChangeRef,
 			frameRef,
 			frameRef.current,
 			event.timeStamp,
@@ -573,6 +715,7 @@ function releasePointerSpin(
 			false,
 		);
 		resetSpinnerMotion(canvas, rotor, motionRefs);
+		writeSpinnerAngle(frameRef.current.angle, variant.id).catch(console.error);
 		audio?.stop();
 		return;
 	}
@@ -592,6 +735,7 @@ function releasePointerSpin(
 		lastHapticTickRef,
 		statsRefs,
 		motionRefs,
+		onFrameChangeRef,
 		frameRef,
 		variant,
 		color,
@@ -609,6 +753,9 @@ function startSpinnerAnimation(
 	lastHapticTickRef: MutableRefObject<number>,
 	statsRefs: SpinnerStatsRefs,
 	motionRefs: SpinnerMotionRefs,
+	onFrameChangeRef: MutableRefObject<
+		((frame: SpinnerFrame) => void) | undefined
+	>,
 	frameRef: MutableRefObject<SpinnerFrame>,
 	variant: SpinnerVariant,
 	color: SpinnerColorOption,
@@ -616,6 +763,7 @@ function startSpinnerAnimation(
 	if (Math.abs(frameRef.current.angularVelocity) <= variant.physics.stopSpeed) {
 		resetSpinnerMotion(canvas, rotor, motionRefs);
 		updateSpinnerStats(statsRefs, 0, 0, variant, true);
+		writeSpinnerAngle(frameRef.current.angle, variant.id).catch(console.error);
 		audio?.stop();
 		return;
 	}
@@ -649,6 +797,7 @@ function startSpinnerAnimation(
 			element,
 			statsRefs,
 			motionRefs,
+			onFrameChangeRef,
 			frameRef,
 			nextFrame,
 			timestamp,
@@ -672,6 +821,7 @@ function startSpinnerAnimation(
 			previousFrameTimeRef.current = null;
 			resetSpinnerMotion(canvas, rotor, motionRefs);
 			updateSpinnerStats(statsRefs, 0, timestamp, variant, true);
+			writeSpinnerAngle(nextFrame.angle, variant.id).catch(console.error);
 			audio?.stop();
 			return;
 		}
@@ -688,6 +838,9 @@ function applySpinnerFrame(
 	element: HTMLButtonElement | null,
 	statsRefs: SpinnerStatsRefs,
 	motionRefs: SpinnerMotionRefs,
+	onFrameChangeRef: MutableRefObject<
+		((frame: SpinnerFrame) => void) | undefined
+	>,
 	frameRef: MutableRefObject<SpinnerFrame>,
 	frame: SpinnerFrame,
 	timestamp: number,
@@ -698,6 +851,7 @@ function applySpinnerFrame(
 	allowMotionBlur = true,
 ) {
 	frameRef.current = frame;
+	onFrameChangeRef.current?.(frame);
 	updateSpinnerStats(
 		statsRefs,
 		frame.angularVelocity,
@@ -731,6 +885,9 @@ function scheduleDragSpinnerFrame(
 	pendingDragFrameRef: MutableRefObject<SpinnerFrame | null>,
 	statsRefs: SpinnerStatsRefs,
 	motionRefs: SpinnerMotionRefs,
+	onFrameChangeRef: MutableRefObject<
+		((frame: SpinnerFrame) => void) | undefined
+	>,
 	frameRef: MutableRefObject<SpinnerFrame>,
 	frame: SpinnerFrame,
 	timestamp: number,
@@ -757,6 +914,7 @@ function scheduleDragSpinnerFrame(
 				element,
 				statsRefs,
 				motionRefs,
+				onFrameChangeRef,
 				frameRef,
 				pendingFrame,
 				timestamp,
@@ -775,6 +933,9 @@ function flushPendingDragFrame(
 	pendingDragFrameRef: MutableRefObject<SpinnerFrame | null>,
 	statsRefs: SpinnerStatsRefs,
 	motionRefs: SpinnerMotionRefs,
+	onFrameChangeRef: MutableRefObject<
+		((frame: SpinnerFrame) => void) | undefined
+	>,
 	frameRef: MutableRefObject<SpinnerFrame>,
 	variant: SpinnerVariant,
 	color: SpinnerColorOption,
@@ -790,6 +951,7 @@ function flushPendingDragFrame(
 			element,
 			statsRefs,
 			motionRefs,
+			onFrameChangeRef,
 			frameRef,
 			pendingFrame,
 			0,
@@ -825,6 +987,20 @@ function resetSpinnerMotion(
 	}
 
 	rotor?.style.setProperty("--spinner-lobe-clarity", "1");
+}
+
+function getInitialSpinnerFrame(
+	variantId: SpinnerVariantId,
+	initialFrame?: SpinnerFrame,
+) {
+	if (initialFrame) {
+		return initialFrame;
+	}
+
+	return {
+		angle: readInitialSpinnerAngle(variantId),
+		angularVelocity: 0,
+	};
 }
 
 function updateSpinnerMotionBlur(

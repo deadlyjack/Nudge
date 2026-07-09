@@ -1,5 +1,10 @@
 import FidgetShell from "components/FidgetShell";
 import KnobFidgetSurface from "components/KnobFidgetSurface";
+import {
+	readInitialKnobAngle,
+	readKnobAngle,
+	writeKnobAngle,
+} from "fidgets/knob/knobStats";
 import type {
 	KnobDetentImpulse,
 	KnobVariant,
@@ -11,9 +16,12 @@ import vibrate from "lib/haptics";
 import sounds from "lib/sounds";
 import { ChevronDown } from "lucide-react";
 import type { MutableRefObject, PointerEvent } from "react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 interface KnobFidgetProps {
+	heroHidden?: boolean;
+	initialAngle?: number;
+	onAngleChange?: (angle: number) => void;
 	onBack: () => void;
 	onOpenSelector?: () => void;
 	variantId: KnobVariantId;
@@ -30,6 +38,9 @@ const KNOB_DETENT_THRESHOLD_RATIO = 0.58;
 const KNOB_MAX_FEEDBACK_PULSES = 4;
 
 export default function KnobFidget({
+	heroHidden,
+	initialAngle,
+	onAngleChange,
 	onBack,
 	onOpenSelector,
 	variantId,
@@ -39,12 +50,49 @@ export default function KnobFidget({
 	const markerRotorRef = useRef<HTMLSpanElement>(null);
 	const motionRef = useRef<HTMLSpanElement>(null);
 	const dragStateRef = useRef<KnobDragState | null>(null);
-	const angleRef = useRef(getNearestDetentAngle(INITIAL_KNOB_ANGLE, variant));
+	const angleRef = useRef(getInitialKnobAngle(variant, initialAngle));
+	const initialAngleRef = useRef(initialAngle);
+	const onAngleChangeRef = useRef(onAngleChange);
 	const detentSequenceRef = useRef(0);
 	const idleDetentImpulse: KnobDetentImpulse = {
 		sequence: 0,
 		strength: 0,
 	};
+
+	useEffect(() => {
+		initialAngleRef.current = initialAngle;
+	}, [initialAngle]);
+
+	useEffect(() => {
+		onAngleChangeRef.current = onAngleChange;
+	}, [onAngleChange]);
+
+	useEffect(() => {
+		let mounted = true;
+		const initialAngle = getInitialKnobAngle(variant, initialAngleRef.current);
+
+		angleRef.current = initialAngle;
+		applyKnobFrame(markerRotorRef.current, initialAngle);
+		onAngleChangeRef.current?.(initialAngle);
+
+		readKnobAngle(variant.id, initialAngle)
+			.then((angle) => {
+				if (!mounted || dragStateRef.current) {
+					return;
+				}
+
+				angleRef.current = getNearestDetentAngle(angle, variant);
+				applyKnobFrame(markerRotorRef.current, angleRef.current);
+				onAngleChangeRef.current?.(angleRef.current);
+			})
+			.catch(console.error);
+
+		return () => {
+			mounted = false;
+			onAngleChangeRef.current?.(angleRef.current);
+			writeKnobAngle(angleRef.current, variant.id).catch(console.error);
+		};
+	}, [variant]);
 
 	return (
 		<FidgetShell
@@ -68,6 +116,8 @@ export default function KnobFidget({
 				angle={angleRef.current}
 				detentImpulse={idleDetentImpulse}
 				dialRef={dialRef}
+				heroHidden={heroHidden}
+				heroId="knob"
 				onPointerDown={(event) =>
 					startTurn(
 						event,
@@ -85,6 +135,7 @@ export default function KnobFidget({
 						motionRef.current,
 						dragStateRef,
 						angleRef,
+						onAngleChangeRef,
 						detentSequenceRef,
 						variant,
 					)
@@ -150,6 +201,7 @@ function turnDial(
 	motion: HTMLSpanElement | null,
 	dragStateRef: MutableRefObject<KnobDragState | null>,
 	angleRef: MutableRefObject<number>,
+	onAngleChangeRef: MutableRefObject<((angle: number) => void) | undefined>,
 	detentSequenceRef: MutableRefObject<number>,
 	variant: KnobVariant,
 ) {
@@ -185,6 +237,7 @@ function turnDial(
 		markerRotor,
 		motion,
 		angleRef,
+		onAngleChangeRef,
 		detentSequenceRef,
 		variant,
 	);
@@ -228,11 +281,14 @@ function commitDetentMovement(
 	markerRotor: HTMLSpanElement | null,
 	motion: HTMLSpanElement | null,
 	angleRef: MutableRefObject<number>,
+	onAngleChangeRef: MutableRefObject<((angle: number) => void) | undefined>,
 	detentSequenceRef: MutableRefObject<number>,
 	variant: KnobVariant,
 ) {
 	angleRef.current += steps * variant.detentInterval;
 	applyKnobFrame(markerRotor, angleRef.current);
+	onAngleChangeRef.current?.(angleRef.current);
+	writeKnobAngle(angleRef.current, variant.id).catch(console.error);
 
 	scheduleDetentFeedback(
 		motion,
@@ -316,6 +372,15 @@ function getMarkerRotorTransform(angle: number) {
 
 function getNearestDetentAngle(angle: number, variant: KnobVariant) {
 	return Math.round(angle / variant.detentInterval) * variant.detentInterval;
+}
+
+function getInitialKnobAngle(variant: KnobVariant, initialAngle?: number) {
+	const defaultAngle = getNearestDetentAngle(INITIAL_KNOB_ANGLE, variant);
+
+	return getNearestDetentAngle(
+		initialAngle ?? readInitialKnobAngle(variant.id, defaultAngle),
+		variant,
+	);
 }
 
 function getDetentIntensity(velocity: number, variant: KnobVariant) {

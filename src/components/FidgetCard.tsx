@@ -7,7 +7,7 @@ import type { FidgetDefinition, FidgetId } from "types/fidgets";
 interface FidgetCardProps {
 	children: ReactNode;
 	fidget: FidgetDefinition;
-	onSelect: (id: FidgetId) => void;
+	onSelect: (id: FidgetId, sourceRect: DOMRect | null) => void;
 }
 
 interface FidgetCardStyle extends CSSProperties {
@@ -26,7 +26,9 @@ export default function FidgetCard({
 			tabIndex={0}
 			className="fidget-card"
 			style={getCardStyle(fidget.accent)}
-			onClick={() => onSelect(fidget.id)}
+			onClick={(event) =>
+				selectFidget(event.currentTarget, fidget.id, onSelect)
+			}
 			onKeyDown={(event) => selectWithKeyboard(event, fidget.id, onSelect)}
 			aria-label={`Open ${fidget.title}`}
 		>
@@ -42,12 +44,22 @@ function getCardStyle(accent: string): FidgetCardStyle {
 function selectWithKeyboard(
 	event: KeyboardEvent<HTMLDivElement>,
 	fidgetId: FidgetId,
-	onSelect: (id: FidgetId) => void,
+	onSelect: (id: FidgetId, sourceRect: DOMRect | null) => void,
 ) {
 	if (event.key !== "Enter" && event.key !== " ") {
 		return;
 	}
 
 	event.preventDefault();
-	onSelect(fidgetId);
+	selectFidget(event.currentTarget, fidgetId, onSelect);
+}
+
+function selectFidget(
+	card: HTMLElement,
+	fidgetId: FidgetId,
+	onSelect: (id: FidgetId, sourceRect: DOMRect | null) => void,
+) {
+	const heroElement = card.querySelector<HTMLElement>("[data-fidget-hero]");
+
+	onSelect(fidgetId, heroElement?.getBoundingClientRect() ?? null);
 }

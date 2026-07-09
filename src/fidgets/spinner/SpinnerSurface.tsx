@@ -6,10 +6,13 @@ import SpinnerRotor from "./SpinnerRotor";
 import type { SpinnerColorOption, SpinnerVariant } from "./spinnerTypes";
 
 interface SpinnerSurfaceProps {
+	angle?: number;
 	bodyRef?: RefObject<HTMLButtonElement | null>;
 	canvasRef?: RefObject<HTMLCanvasElement | null>;
 	color: SpinnerColorOption;
 	disabled?: boolean;
+	heroHidden?: boolean;
+	heroId?: string;
 	mode?: "full" | "icon";
 	onPointerCancel?: PointerEventHandler<HTMLButtonElement>;
 	onPointerDown?: PointerEventHandler<HTMLButtonElement>;
@@ -20,10 +23,13 @@ interface SpinnerSurfaceProps {
 }
 
 export default function SpinnerSurface({
+	angle = 0,
 	bodyRef,
 	canvasRef,
 	color,
 	disabled,
+	heroHidden,
+	heroId,
 	mode = "full",
 	onPointerCancel,
 	onPointerDown,
@@ -50,7 +56,10 @@ export default function SpinnerSurface({
 					<canvas ref={canvasRef} className="spinner-fidget-motion-canvas" />
 				) : null}
 				<SpinnerRotor
+					angle={angle}
 					color={color}
+					heroHidden={heroHidden}
+					heroId={heroId}
 					preview={mode === "icon"}
 					rotorRef={rotorRef}
 					variant={variant}

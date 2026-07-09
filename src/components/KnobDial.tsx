@@ -16,6 +16,8 @@ interface KnobDialProps {
 	detentImpulse?: KnobDetentImpulse;
 	dialRef?: RefObject<HTMLButtonElement | null>;
 	disabled?: boolean;
+	heroHidden?: boolean;
+	heroId?: string;
 	markerRotorRef?: MutableRefObject<HTMLSpanElement | null>;
 	motionRef?: MutableRefObject<HTMLSpanElement | null>;
 	onPointerCancel?: PointerEventHandler<HTMLButtonElement>;
@@ -44,6 +46,8 @@ export default function KnobDial({
 	detentImpulse = idleDetentImpulse,
 	dialRef,
 	disabled,
+	heroHidden,
+	heroId,
 	markerRotorRef,
 	motionRef,
 	onPointerCancel,
@@ -63,12 +67,14 @@ export default function KnobDial({
 		variant,
 	);
 	const dataAttributes = getKnobDataAttributes(variant);
+	const heroAttributes = getHeroDataAttributes(heroId, heroHidden);
 
 	if (disabled) {
 		const previewProps: HTMLAttributes<HTMLSpanElement> = {
 			"aria-hidden": "true",
 			className,
 			style,
+			...heroAttributes,
 			...dataAttributes,
 		};
 
@@ -81,6 +87,7 @@ export default function KnobDial({
 			type="button"
 			className={className}
 			style={style}
+			{...heroAttributes}
 			{...dataAttributes}
 			onPointerDown={disabled ? undefined : onPointerDown}
 			onPointerMove={disabled ? undefined : onPointerMove}
@@ -119,6 +126,16 @@ function getKnobDataAttributes(variant: KnobVariant) {
 		"data-knob-indicator": variant.visual.indicatorShape,
 		"data-knob-material": variant.visual.material,
 		"data-knob-variant": variant.id,
+	};
+}
+
+function getHeroDataAttributes(
+	heroId: string | undefined,
+	heroHidden: boolean | undefined,
+) {
+	return {
+		"data-fidget-hero": heroId,
+		"data-fidget-hero-hidden": heroHidden ? "true" : undefined,
 	};
 }
 

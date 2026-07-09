@@ -19,6 +19,15 @@ jest.mock("lib/sounds", () => ({
 	},
 }));
 
+jest.mock("lib/store", () => ({
+	__esModule: true,
+	default: {
+		get: jest.fn().mockResolvedValue(null),
+		remove: jest.fn().mockResolvedValue(undefined),
+		set: jest.fn().mockResolvedValue(undefined),
+	},
+}));
+
 interface PointerCaptureElement extends HTMLElement {
 	setPointerCapture(pointerId: number): void;
 	releasePointerCapture(pointerId: number): void;
@@ -35,6 +44,8 @@ let animationFrames: AnimationFrameMock;
 let restoreBrowserMocks: () => void;
 
 beforeEach(() => {
+	jest.clearAllMocks();
+	window.localStorage.clear();
 	restoreBrowserMocks = mockBrowserPointerSupport();
 	animationFrames = mockAnimationFrames();
 });
@@ -152,6 +163,38 @@ test("does not jump to the touch angle on pointer down", () => {
 	dispatchPointerAngle(dial, "pointerdown", 270);
 
 	expect(markerRotor.style.transform).toBe("translateZ(0) rotate(18deg)");
+});
+
+test("restores saved detent angle for the selected knob", () => {
+	window.localStorage.setItem("nudge.knob.angle.knob-brushed-aluminum", "72");
+
+	renderKnobFidget();
+
+	const dial = screen.getByRole("button", {
+		name: "Turn the fidget dial",
+	}) as PointerCaptureElement;
+	const markerRotor = getMarkerRotor(dial);
+
+	expect(markerRotor.style.transform).toBe("translateZ(0) rotate(72deg)");
+});
+
+test("persists the selected knob detent angle", () => {
+	renderKnobFidget();
+
+	const dial = screen.getByRole("button", {
+		name: "Turn the fidget dial",
+	}) as PointerCaptureElement;
+	const markerRotor = getMarkerRotor(dial);
+
+	mockDialBounds(dial);
+
+	dispatchPointerAngle(dial, "pointerdown", 18);
+	dispatchPointerAngle(dial, "pointermove", 29);
+
+	expect(markerRotor.style.transform).toBe("translateZ(0) rotate(36deg)");
+	expect(
+		window.localStorage.getItem("nudge.knob.angle.knob-brushed-aluminum"),
+	).toBe("36");
 });
 
 test("rotates only the marker layer and keeps body texture stationary", () => {

@@ -4,6 +4,7 @@ import { SpinnerVariantId } from "./spinnerTypes";
 
 const SPINNER_BEST_SPEED_KEY = "nudge.spinner.bestSpeed";
 const SPINNER_SELECTED_VARIANT_KEY = "nudge.spinner.selectedVariant";
+const SPINNER_ANGLE_KEY = "nudge.spinner.angle";
 
 export function getSpinnerSpeedScore(speed: number) {
 	return Math.round(Math.abs(speed) / 6);
@@ -97,8 +98,48 @@ export async function writeSelectedSpinnerVariantId(
 	await store.set(SPINNER_SELECTED_VARIANT_KEY, variantId);
 }
 
+export function readInitialSpinnerAngle(
+	variantId = SpinnerVariantId.Spinner1,
+	fallbackAngle = 0,
+) {
+	return (
+		parseStoredAngle(readLocalSpinnerAngle(getSpinnerAngleKey(variantId))) ??
+		fallbackAngle
+	);
+}
+
+export async function readSpinnerAngle(
+	variantId = SpinnerVariantId.Spinner1,
+	fallbackAngle = 0,
+) {
+	const storageKey = getSpinnerAngleKey(variantId);
+	const storedAngle = parseStoredAngle(await store.get<number>(storageKey));
+
+	if (storedAngle !== null) {
+		writeLocalSpinnerAngle(storageKey, storedAngle);
+		return storedAngle;
+	}
+
+	return readInitialSpinnerAngle(variantId, fallbackAngle);
+}
+
+export async function writeSpinnerAngle(
+	angle: number,
+	variantId = SpinnerVariantId.Spinner1,
+) {
+	const storageKey = getSpinnerAngleKey(variantId);
+	const normalizedAngle = normalizeStoredAngle(angle);
+
+	writeLocalSpinnerAngle(storageKey, normalizedAngle);
+	await store.set(storageKey, normalizedAngle);
+}
+
 function getSpinnerBestSpeedKey(variantId: SpinnerVariantId) {
 	return `${SPINNER_BEST_SPEED_KEY}.${variantId}`;
+}
+
+function getSpinnerAngleKey(variantId: SpinnerVariantId) {
+	return `${SPINNER_ANGLE_KEY}.${variantId}`;
 }
 
 function readLocalBestSpinnerSpeed(storageKey: string) {
@@ -151,10 +192,51 @@ function writeLocalSelectedSpinnerVariantId(variantId: SpinnerVariantId) {
 	}
 }
 
+function readLocalSpinnerAngle(storageKey: string) {
+	if (!canUseLocalStorage()) {
+		return null;
+	}
+
+	try {
+		return window.localStorage.getItem(storageKey);
+	} catch (error) {
+		console.error(error);
+		return null;
+	}
+}
+
+function writeLocalSpinnerAngle(storageKey: string, angle: number) {
+	if (!canUseLocalStorage()) {
+		return;
+	}
+
+	try {
+		window.localStorage.setItem(storageKey, `${angle}`);
+	} catch (error) {
+		console.error(error);
+	}
+}
+
 function parseStoredSpeed(value: unknown) {
 	const parsedSpeed = Number(value);
 
 	return Number.isFinite(parsedSpeed) && parsedSpeed > 0 ? parsedSpeed : 0;
+}
+
+function parseStoredAngle(value: unknown) {
+	if (value === null || value === undefined || value === "") {
+		return null;
+	}
+
+	const parsedAngle = Number(value);
+
+	return Number.isFinite(parsedAngle)
+		? normalizeStoredAngle(parsedAngle)
+		: null;
+}
+
+function normalizeStoredAngle(angle: number) {
+	return ((angle % 360) + 360) % 360;
 }
 
 function parseStoredSpinnerVariantId(value: unknown): SpinnerVariantId | null {
